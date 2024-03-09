@@ -1,32 +1,5 @@
 #include "Database.h"
 
-int main(int argc,char *argv[])
-{
-    MYSQL conn;
-    int res;
-    mysql_init(&conn);
-    //"root":数据库管理员 "123":root密码 "test":数据库的名字
-    if(mysql_real_connect(&conn, "192.168.88.129","root","123456","test",0,NULL,CLIENT_FOUND_ROWS))
-    {
-        std::cout << "connect success" << std::endl;
-        res = mysql_query(&conn, "insert into tb1 values (3,'c')");
-        //res = mysql_query(&conn, "select * from tb1;");
-    if(res)
-    {
-        std::cout<<res;
-        printf("error\n");
-    }
-    else
-    {
-        printf("OK\n");
-    }
-    mysql_close(&conn);
-    }else
-    {
-        std::cout << "connect failed" << std::endl;
-    }
-    return 0;
-}
 
 Database::Database(/* args */)
 {
@@ -66,7 +39,7 @@ bool Database::query()
 	bool ret = false;
 	MYSQL_RES* res;
 	MYSQL_ROW row;
-	snprintf(sql, 256, "select * from tb1;");
+	snprintf(sql, 256, "SELECT * from dept WHERE json_value->'$.deptLeaderId'='5'");
 	ret = mysql_query(_mysql, sql);//成功返回0
 	if (ret) {
 		printf("数据库查询出错，%s错误原因：%s", sql, mysql_error(_mysql));
