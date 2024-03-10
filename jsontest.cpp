@@ -13,7 +13,8 @@ int main()
 	//array["array"] = Json::Value(root);
 	string data = writer.write(array);
 	cout << data<< endl;
-
+	free(database);
 	return 0;
 }
+//g++ -o out mysql/Database.cpp jsontest.cpp  -I/usr/include/mysql -L /usr/local/lib /usr/local/lib/libjsoncpp.a -L/usr/lib/x86_64-linux-gnu -lmysqlclient 
 

@@ -19,7 +19,7 @@ bool Database::connect()
         return false;
     }
 
-    if(mysql_query(_mysql, "set names utf-8"))
+    if(mysql_query(_mysql, "set names utf8"))
     {
         std::cout<<"set names utf-8 error"<<std::endl;
     }
@@ -50,7 +50,7 @@ bool Database::query()
 	while ((row = mysql_fetch_row(res))!=NULL)
 	{
 		for (int i = 0; i < mysql_num_fields(res); i++) {
-			printf("%s", row[i]);
+			//printf("%s", row[i]);
 		}
 		printf("\n");
 	}
