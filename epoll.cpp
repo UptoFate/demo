@@ -32,24 +32,6 @@ int main(int argc, char* argv[]){
     serversock.bind(serveraddress);
     serversock.listen(200);
 
-    // // 初始化红黑树和事件链表结构rdlist结构
-    // epoll_event events[MAX_EVENT_NUMBER];
-    // // 创建epoll实例
-    // int m_epollfd = epoll_create(5);
-    // if(m_epollfd==-1)
-    // {
-    //     printf("fail to epoll create!");
-    //     return m_epollfd;
-    // }
-
-    // // 创建节点结构体将监听连接句柄
-    epoll_event event;
-    event.data.fd = serversock.fd();
-    //设置该句柄为边缘触发（数据没处理完后续不会再触发事件，水平触发是不管数据有没有触发都返回事件），
-    event.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
-    // // 添加监听连接句柄作为初始节点进入红黑树结构中，该节点后续处理连接的句柄
-    // epoll_ctl(m_epollfd, EPOLL_CTL_ADD, serversock.fd(), &event);
-
     Epoll ep;
     ep.addfd(serversock.fd(), EPOLLIN | EPOLLET | EPOLLRDHUP);      //epoll 监视listenfd 的读事件，水平触发
     std::vector<epoll_event> evs;           //存放epoll_wait()返回的事件
