@@ -1,0 +1,2 @@
+# demo
+self-test
