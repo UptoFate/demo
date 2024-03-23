@@ -9,6 +9,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <strings.h>
+#include "Channel.h"
+
+class Channel;
 
 class Epoll
 {
@@ -19,10 +22,13 @@ public:
 public:
     Epoll(/* args */);
     ~Epoll();
-    void addfd(int fd, uint32_t op);        //把fd和其监视的事件添加到红黑树上
+    //void addfd(int fd, uint32_t op);        //把fd和其监视的事件添加到红黑树上
+    void updateChannel(Channel *ch);          //把chnnel添加/更新到红黑树上，添加事件
     void closefd(int fd); 
     void writefd(int fd);
-    std::vector<epoll_event> loop(int timeout=-1);  //运行epoll_wait()，等待事件发生，已发生的用vector返回
+    //std::vector<epoll_event> loop(int timeout=-1);  //运行epoll_wait()，等待事件发生，已发生的用vector返回
+    std::vector<Channel*> loop(int timeout=-1);  //运行epoll_wait()，等待事件发生，已发生的用vector返回
+
 };
 
 
