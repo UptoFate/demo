@@ -88,9 +88,39 @@ void Channel::handleevent(Socket* serversock)
                 //成功的读取到了数据。
                 if (nread>0){
                     //把接收到的报文内容原封不动的发回去。
-                    printf ("recv(eventfd=%d):%s\n",fd_, buf);
+                    //printf ("recv(eventfd=%d):%s\n",fd_, buf);
                     send (fd_, buf, strlen(buf),0);
+                    Json::Reader reader;
+                    Json::Value root;
+                    bool parsingSuccess = reader.parse(buf, root);
+                        if (!parsingSuccess) {
+                        std::cerr << "Failed to parse JSON string" << std::endl;
+                        break;
+                    }
+                    std::string cmd = root["CMD"].asString();
+                    if (cmd == "LOGIN")
+                    {
+                        User usr(root["username"].asString(), root["password"].asString());
+                        std::cout<<"username:"<<root["username"].toStyledString()<<" \npassword:"<<root["password"].toStyledString()<<std::endl;
+                        if(usr.login())
+                        {
+                            std::cout <<"登入成功"<<std::endl;
+                        }
+                        else
+                        {
+                            std::cout<<"登入失败"<<std::endl;
+                            break;
+                        } 
+                    }
+                    else
+                    {
+                        std::cout<<"unknow command"<<std::endl;
+                        break;
+                    }
+
+                    std::cout<<root.toStyledString()<<std::endl;
                 }
+                
                 //读取数据的时候被信号中断，继续读取。
                 else if (nread ==-1 && errno == EINTR )continue;
                 //全部的数据已读取完毕。 

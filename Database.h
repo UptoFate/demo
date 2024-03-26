@@ -5,21 +5,20 @@
 #include <mutex>
 #include <stdio.h>
 #include <iostream>
-#include "../ChatList.h"
+//#include "ChatList.h"
 
 class Database
 {
 private:
     MYSQL *_mysql;
-    std::mutex _mutex;  //互斥锁
+    //std::mutex _mutex;  //互斥锁
 public:
     Database(/* args */);
     ~Database();
     bool connect();
     void disconnect();
     bool query();
+    bool login(std::string username, std::string password);
 };
-
-
 
 #endif

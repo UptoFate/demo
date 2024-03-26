@@ -3,6 +3,9 @@
 #include "Epoll.h"
 #include "InetAddress.h"
 #include "Socket.h"
+#include <json/json.h>
+#include <iostream>
+#include "User.h"
 
 class Epoll;
 

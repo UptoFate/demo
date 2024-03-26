@@ -11,8 +11,8 @@
 #include <error.h>
 #include "InetAddress.h"
 #include "Socket.h"
-#include <json/json.h>
-#include "Epoll.h"
+//#include <json/json.h>
+#include "Channel.h"
 
 const int MAX_EVENT_NUMBER = 10000; //最大事件数
 
@@ -22,7 +22,6 @@ int main(int argc, char* argv[]){
         printf("tcpepoll: ip port\n");
         return -1; 
     }
-
     Socket serversock(createnonblocking());
     InetAddress serveraddress(argv[1],atoi(argv[2]));
     serversock.setreuseaddr(true);
