@@ -1,10 +1,11 @@
 #ifndef __CHANNEL__
 #define __CHANNEL__
+#include <json/json.h>
+#include <iostream>
+#include <functional>
 #include "Epoll.h"
 #include "InetAddress.h"
 #include "Socket.h"
-#include <json/json.h>
-#include <iostream>
 #include "User.h"
 
 class Epoll;
@@ -19,20 +20,27 @@ private:
     bool inepoll_ = false;       //Channel是否已添加到epoll树上，若未则调用epoll_ctl()时使用EPOLL_CTL_ADD,否则用.._MOD
     uint32_t events_ = 0;        //fd_需要监视的事件：listenfd和clientfd需要监视EPOLLIN，clientfd还可能要EPOLLOUT
     uint32_t revents_ = 0;       //fd_已发生事件
-    bool islisten_ = false; 
+    std::function<void()> readcallback_;    //fd_读事件的回调函数
+
 public:
-    Channel(Epoll*ep, int fd, bool islisten = false);
+    Channel(Epoll*ep, int fd);
     ~Channel();
     int fd();                               //返回fd_
     void useet();                           //采用边缘触发
     void enablereading();                   //让epoll_wait()监视fd_的读事件
     void setinepoll();                      //设置inepoll_
-    void setrevent(uint32_t event);         //设置inepoll_
+    void setrevent(uint32_t events);         //设置inepoll_
     bool inepoll();
     uint32_t events();
     uint32_t revents();
 
-    void handleevent(Socket* serversock);                     //处理循环事件
+    void handleevent();                     //处理循环事件
+    void newconnection(Socket* servsock);                   //处理新客户端连接请求
+    void onmessage();                                       //处理对端报文
+    void setreadcallback(std::function<void()> fn);         //设置fd_读事件的回调函数
+
+    //测试websocket用
+    void read_client_request();    
 };
 
 #endif
