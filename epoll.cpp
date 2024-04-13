@@ -13,6 +13,7 @@
 #include "Socket.h"
 #include <json/json.h>
 #include "Channel.h"
+#include "EventLoop.h"
 
 const int MAX_EVENT_NUMBER = 10000; //最大事件数
 
@@ -32,21 +33,13 @@ int main(int argc, char* argv[]){
     serversock.bind(serveraddress);
     serversock.listen(200);
 
-    Epoll ep;
+    EventLoop loop;
     //ep.addfd(serversock.fd(), EPOLLIN | EPOLLET | EPOLLRDHUP);      //epoll 监视listenfd 的读事件，水平触发
-    Channel *servchannel = new Channel(&ep, serversock.fd());
+    Channel *servchannel = new Channel(loop.ep(), serversock.fd());
     servchannel->setreadcallback(std::bind(&Channel::newconnection, servchannel, &serversock));
     servchannel->enablereading();                                     //epoll 监视listenfd 的读事件，水平触发 
 
     //进入服务器循环
-    while(1)
-    {
-        std::vector<Channel*> channels = ep.loop();           //存放epoll_wait()返回的事件
-        for(auto &ch:channels)
-        {
-            ch->handleevent();
-        }
-    }
+    loop.run();
 }
-
 
