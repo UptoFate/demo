@@ -1,5 +1,34 @@
 #include "Channel.h"
 
+bool readline(int fd, char buf[], size_t buf_size) {
+    char ch;
+    ssize_t bytes_read;
+    size_t i = 0;
+
+    // 循环读取每个字符，直到读取到换行符或者缓冲区已满
+    while ((bytes_read = read(fd, &ch, 1)) > 0) {
+        if (ch == '\n') {
+            buf[i] = '\0'; // 添加字符串结束符
+            return true;
+        }
+        buf[i++] = ch; // 将字符存储到缓冲区中
+        if (i >= buf_size - 1) {
+            // 缓冲区已满
+            buf[i] = '\0'; // 添加字符串结束符
+            return false;
+        }
+    }
+
+    // 如果读取失败或者文件已经结束
+    if (bytes_read == 0 && i == 0) {
+        // 文件已经结束
+        return false;
+    }
+
+    // 读取失败
+    return false;
+}
+
 Channel::Channel(Epoll*ep, int fd):ep_(ep),fd_(fd)
 {
 
@@ -54,13 +83,63 @@ uint32_t Channel::revents()
 void Channel::read_client_request()
 {
     char buf[1024] = "";
-    int n  ;
+    char tmp[1024] = "";
+    //web实现：先读取一行，再把其他行读取扔掉
+    int n = readline(fd_, buf, sizeof(buf));
     if(n <= 0)
     {
         printf ("close or err client(eventfd=%d)disconnected.\n ", fd_);
-        
+        ep_->closefd(fd_);
+        return;
     }
+    printf("[%s]\n", buf);
+    int ret = 0;
+    while ((ret = readline(fd_, tmp, sizeof(tmp))));
 
+    //解析请求行 GET /a.txt HTTP/1.1\R\name
+    char method[256] = "";
+    char content[256] = "";
+    char protocol[256] = "";
+    sscanf(buf,"%[^ ] %[^ ] %[^ \r\n]",method, content, protocol);
+
+    //判断是否为get请求
+    if(strcasecmp(method, "get") == 0)
+    {
+        char *strfile = content + 1;
+
+        //切换目录
+        char pwd_path[256] = "";
+        char* path = getenv("PWD");
+        strcpy(pwd_path, path);
+        strcat(pwd_path, "/web-http");
+        chdir(pwd_path);
+        //判断文件是否存在
+        if(*strfile == 0)strfile = (char*)"./";
+        struct stat s;
+        char* type = (char*)"text/html; charset=utf-8\r\n";
+        if(stat(strfile, &s) < 0)
+        {
+            printf("file not fount\n");
+            //先发送报头（状态行 消息头 空行）再发送文件 error.html
+            //要写一个get_mime_type()函数判断文件类型
+            send_header(404, (char*)"NOT FOUND", type, 0);
+            send_file((char*)"error.html");
+        }
+        else
+        {
+            //请求为普通文件
+            if(S_ISREG(s.st_mode))
+            {   
+                std::cout << "file" << std::endl;
+                //先发送报头（状态行 消息头 空行）再发送文件
+                send_header(200, (char*)"OK", type, s.st_size);
+                send_file(strfile);
+            }
+            //请求为目录
+            else if(S_ISDIR(s.st_mode))std::cout << "dir" << std::endl;
+        }
+
+    }
 }
 
 void Channel::handleevent()
@@ -113,7 +192,9 @@ void Channel::newconnection(Socket* servsock)
 
     //设置该句柄为边缘触发（数据没处理完后续不会再触发事件，水平触发是不管数据有没有触发都返回事件），
     Channel *clientchannel = new Channel(ep_, clientsock->fd());
-    clientchannel->setreadcallback(std::bind(&Channel::onmessage, clientchannel));
+    //clientchannel->setreadcallback(std::bind(&Channel::onmessage, clientchannel));
+    //测试GET
+    clientchannel->setreadcallback(std::bind(&Channel::read_client_request, clientchannel));
 
     clientchannel->useet();
     clientchannel->enablereading();
@@ -132,9 +213,6 @@ void Channel::onmessage()
         if (nread>0){
             //把接收到的报文内容原封不动的发回去。
             //printf ("recv(eventfd=%d):%s\n",fd_, buf);
-            
-            //web实现：先读取一行，再把其他行读取扔掉
-            //int op = Read
 
             send (fd_, buf, strlen(buf),0);
             Json::Reader reader;
@@ -185,4 +263,74 @@ void Channel::onmessage()
 void  Channel::setreadcallback(std::function<void()> fn)
 {
     readcallback_ = fn;
+}
+
+// bool Channel::isHTTPRequest() {
+//     const int max_header_size = 1024; // 假设 HTTP 请求头的最大大小为 1024 字节
+//     char header[max_header_size];
+//     ssize_t bytes_read;
+
+//     // 从套接字中读取一部分数据
+//     bytes_read = read(fd_, header, max_header_size);
+//     if (bytes_read <= 0) {
+//         // 读取失败或者连接已关闭
+//         return false;
+//     }
+
+//     // 检查读取的数据中是否包含 HTTP 请求的关键词
+//     if (bytes_read >= 4 && (strncmp(header, "GET ", 4) == 0 ||
+//                             strncmp(header, "POST ", 5) == 0 ||
+//                             strncmp(header, "PUT ", 4) == 0 ||
+//                             strncmp(header, "DELETE ", 7) == 0)) {
+//         // 包含 HTTP 请求关键词，可以认为是 HTTP 请求
+//         return true;
+//     }
+
+//     // 不包含 HTTP 请求关键词，可能是其他类型的请求
+//     return false;
+// }
+
+void Channel::send_header(int code, char* info, char* filetype, int length)
+{
+    //状态行 
+    char buf[1024] = "";
+    int len = 0;
+    len =  sprintf(buf,"HTTP/1.1 %d %s\r\n",code, info);
+    send(fd_, buf, len, 0);
+    //消息头 
+    len = sprintf(buf,"Content-Type:%s\r\n", filetype);
+    send(fd_, buf, len, 0);
+    if(length > 0)
+    {
+        len = sprintf(buf, "Content-Length:%d\r\n", length);
+        send(fd_, buf,len, 0);
+    }
+    //空行
+    send(fd_, "\r\n", 2, 0);
+} 
+void Channel::send_file(char* path)
+{
+    int fd = open(path, O_RDONLY);
+    if(fd < 0){
+        perror("");
+        return;
+    }
+    char buf[1024] = "";
+    int len = 0;
+    while (1)
+    {
+        len = read(fd, buf, sizeof(buf));
+        if(len < 0)
+        {
+            perror("");
+            break;
+        }
+        else if(len == 0) break;
+        else
+        {
+            send(fd_, buf, len, 0);
+        }
+    }
+    ::close(fd);
+    ep_->closefd(fd_);
 }

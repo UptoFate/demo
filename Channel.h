@@ -3,6 +3,8 @@
 #include <json/json.h>
 #include <iostream>
 #include <functional>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "Epoll.h"
 #include "InetAddress.h"
 #include "Socket.h"
@@ -40,7 +42,12 @@ public:
     void setreadcallback(std::function<void()> fn);         //设置fd_读事件的回调函数
 
     //测试websocket用
-    void read_client_request();    
+    //bool isHTTPRequest();
+    void read_client_request(); 
+    void send_header(int code, char* info, char* filetype, int length);  
+    void send_file(char* path); 
 };
+
+bool readline(int fd, char buf[], size_t buf_size);
 
 #endif
