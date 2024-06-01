@@ -74,7 +74,7 @@ bool Database::login(std::string username, std::string password)
     MYSQL_RES* res;
     MYSQL_ROW row;
     bool ret = false;
-    std::string query = "SELECT username FROM users WHERE username = '" + username + "' AND password = '" + password + "';";
+    std::string query = "SELECT username FROM usercredentials WHERE username = '" + username + "' AND password = '" + password + "';";
     ret = mysql_query(_mysql, query.c_str()); // 成功返回0
     if (ret != 0) {
         printf("数据库查询出错：%s", mysql_error(_mysql));
@@ -98,4 +98,31 @@ bool Database::login(std::string username, std::string password)
 	{
         return false;
     }
+}
+
+bool Database::update(std::string ip, std::string mask, std::string geteway, std::string CpuID, std::string BiosID, std::string username)
+{	
+    connect();
+    MYSQL_RES* res;
+    bool ret = false;
+    std::string query = "UPDATE usercredentials SET ip_address = '"
+    + ip
+    + "', mask = '"
+    + mask
+    + "', gateway = '"
+    + geteway
+    + "', CpuID = '"
+    + CpuID
+    + "',BiosID = '"
+    + BiosID
+    + "' WHERE username = '"
+    + username 
+    + "';";
+	if (ret = mysql_query(_mysql, query.c_str())) {
+        printf("数据库修改出错：%s", mysql_error(_mysql));
+        disconnect();
+		return false;
+	}
+    disconnect();
+	return true;
 }

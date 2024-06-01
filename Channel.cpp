@@ -192,9 +192,9 @@ void Channel::newconnection(Socket* servsock)
 
     //设置该句柄为边缘触发（数据没处理完后续不会再触发事件，水平触发是不管数据有没有触发都返回事件），
     Channel *clientchannel = new Channel(ep_, clientsock->fd());
-    //clientchannel->setreadcallback(std::bind(&Channel::onmessage, clientchannel));
+    clientchannel->setreadcallback(std::bind(&Channel::onmessage, clientchannel));
     //测试GET
-    clientchannel->setreadcallback(std::bind(&Channel::read_client_request, clientchannel));
+    //clientchannel->setreadcallback(std::bind(&Channel::read_client_request, clientchannel));
 
     clientchannel->useet();
     clientchannel->enablereading();
@@ -209,7 +209,7 @@ void Channel::onmessage()
         bzero (&buf, sizeof(buf));
         ssize_t nread = read (fd_ , buf , sizeof (buf));
         
-        //成功的读取到了数据。
+        //成功读取到了数据。
         if (nread>0){
             //把接收到的报文内容原封不动的发回去。
             //printf ("recv(eventfd=%d):%s\n",fd_, buf);
@@ -225,11 +225,16 @@ void Channel::onmessage()
             std::string cmd = root["CMD"].asString();
             if (cmd == "LOGIN")
             {
-                User usr(root["username"].asString(), root["password"].asString());
+                User usr(root["username"].asString(), root["password"].asString(), root["CpuID"].asString(), root["BiosID"].asString(), "GETEWAY", "MASK");
+                usr.setip("  ");
                 std::cout<<"username:"<<root["username"].toStyledString()<<" \npassword:"<<root["password"].toStyledString()<<std::endl;
                 if(usr.login())
                 {
                     std::cout <<"登入成功"<<std::endl;
+                    if(usr.updete()){
+                        std::cout <<"修改数据成功"<<std::endl;
+                    }
+                    else std::cout <<"修改数据失败"<<std::endl;
                 }
                 else
                 {

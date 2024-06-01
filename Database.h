@@ -19,6 +19,7 @@ public:
     void disconnect();
     bool query();
     bool login(std::string username, std::string password);
+    bool update(std::string ip,std::string mask, std::string geteway, std::string CpuID, std::string BiosID, std::string username);
 };
 
 #endif
