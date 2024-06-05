@@ -1,5 +1,11 @@
 #include "Channel.h"
 
+#define SUCCESS 0
+#define PASERROR 1
+#define NULLUSER 2
+#define SQLERROR 3
+std::vector<User*> Channel::userlist;
+
 bool readline(int fd, char buf[], size_t buf_size) {
     char ch;
     ssize_t bytes_read;
@@ -37,6 +43,12 @@ Channel::Channel(Epoll*ep, int fd):ep_(ep),fd_(fd)
 Channel::~Channel()
 {
     //ep_与fd_不属于Channel类，只是使用而已不能在这delete
+}
+
+void Channel::_close(int fd)
+{
+    ep_->closefd(fd_);
+    if(Channel::userlist[fd] != nullptr)free(Channel::userlist[fd]);
 }
 
 int Channel::fd()
@@ -89,7 +101,7 @@ void Channel::read_client_request()
     if(n <= 0)
     {
         printf ("close or err client(eventfd=%d)disconnected.\n ", fd_);
-        ep_->closefd(fd_);
+        _close(fd_);
         return;
     }
     printf("[%s]\n", buf);
@@ -148,7 +160,7 @@ void Channel::handleevent()
     if (revents_ & (EPOLLRDHUP | EPOLLHUP | EPOLLERR))
     {
         printf("client(eventfd=%d) disconnected.\n", fd_);
-        close(fd_);
+        _close(fd_);
     }
     //缓冲区有数据可读 
     else if (revents_ & EPOLLIN|EPOLLPRI)
@@ -198,6 +210,11 @@ void Channel::newconnection(Socket* servsock)
 
     clientchannel->useet();
     clientchannel->enablereading();
+    //userlist[fd_] = std::make_unique<User>(clientaddr.ip());
+    if (clientsock->fd() >= userlist.size()) {
+        Channel::userlist.resize(clientsock->fd() + 1);
+    }
+    Channel::userlist[clientsock->fd()] = new User(clientaddr.ip());
     printf("accept client(fd=%d,ip=%s,port=%d)ok\n", clientsock->fd(), clientaddr.ip(), clientaddr.port());
 }     
 
@@ -208,13 +225,12 @@ void Channel::onmessage()
     while (true){
         bzero (&buf, sizeof(buf));
         ssize_t nread = read (fd_ , buf , sizeof (buf));
-        
         //成功读取到了数据。
         if (nread>0){
             //把接收到的报文内容原封不动的发回去。
             //printf ("recv(eventfd=%d):%s\n",fd_, buf);
-
             send (fd_, buf, strlen(buf),0);
+
             Json::Reader reader;
             Json::Value root;
             bool parsingSuccess = reader.parse(buf, root);
@@ -225,30 +241,48 @@ void Channel::onmessage()
             std::string cmd = root["CMD"].asString();
             if (cmd == "LOGIN")
             {
-                User usr(root["username"].asString(), root["password"].asString(), root["CpuID"].asString(), root["BiosID"].asString(), "GETEWAY", "MASK");
-                usr.setip("  ");
+                std::cout<<"1";
+                Channel::userlist[fd_]->getinfo(root["username"].asString(), root["password"].asString(), root["CpuID"].asString(), root["BiosID"].asString());
+                std::cout<<"2";
                 std::cout<<"username:"<<root["username"].toStyledString()<<" \npassword:"<<root["password"].toStyledString()<<std::endl;
-                if(usr.login())
-                {
+                int validation =  userlist[fd_]->login() ;
+                if(validation == SUCCESS)
+                {                    
                     std::cout <<"登入成功"<<std::endl;
-                    if(usr.updete()){
+                    root["Validation"] = "SUCCESS";
+
+                    if(userlist[fd_]->updete()){
                         std::cout <<"修改数据成功"<<std::endl;
                     }
-                    else std::cout <<"修改数据失败"<<std::endl;
+                    else{
+                        std::cout <<"修改数据失败"<<std::endl;
+                        root["Validation"] = "MODFAIL";
+                    }
                 }
-                else
+                else if(validation = PASERROR)
                 {
-                    std::cout<<"登入失败"<<std::endl;
-                    break;
+                    std::cout<<"密码错误"<<std::endl;
+                    root["Validation"] = "PASERROR";
                 } 
+                else if(validation = NULLUSER)
+                {
+                    std::cout<<"用户不存在"<<std::endl;
+                    root["Validation"] = "NULLUSER";
+                }
+                else if(validation = SQLERROR)
+                {
+                    std::cout<<"SQLERROR"<<std::endl;
+                    root["Validation"] = "SQLERROR";
+                }
             }
             else
             {
                 std::cout<<"unknow command"<<std::endl;
-                break;
             }
-
-            std::cout<<root.toStyledString()<<std::endl;
+            std::string style = root.toStyledString();
+            send (fd_, style.c_str(), strlen(style.c_str()),0);
+            std::cout << style << std::endl;
+            
         }
         
         //读取数据的时候被信号中断，继续读取。
@@ -259,7 +293,7 @@ void Channel::onmessage()
         else if (nread ==0)//客户端连接已断开。
         {
             printf (" client(eventfd=%d)disconnected.\n ", fd_);
-            close(fd_ );//关闭客户端的fd
+            _close(fd_ );//关闭客户端的fd
             break ;
         }
     }
@@ -336,6 +370,6 @@ void Channel::send_file(char* path)
             send(fd_, buf, len, 0);
         }
     }
-    ::close(fd);
-    ep_->closefd(fd_);
+    _close(fd);
+
 }

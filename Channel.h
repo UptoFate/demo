@@ -5,10 +5,12 @@
 #include <functional>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <vector>
 #include "Epoll.h"
 #include "InetAddress.h"
 #include "Socket.h"
 #include "User.h"
+
 
 class Epoll;
 
@@ -23,8 +25,10 @@ private:
     uint32_t events_ = 0;        //fd_需要监视的事件：listenfd和clientfd需要监视EPOLLIN，clientfd还可能要EPOLLOUT
     uint32_t revents_ = 0;       //fd_已发生事件
     std::function<void()> readcallback_;    //fd_读事件的回调函数
-
+    //std::vector<std::unique_ptr<User>> userlist;
+    void _close(int fd);
 public:
+    static std::vector<User*> userlist;
     Channel(Epoll*ep, int fd);
     ~Channel();
     int fd();                               //返回fd_

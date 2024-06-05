@@ -1,5 +1,8 @@
 #include "Database.h"
-
+#define SUCCESS 0
+#define PASERROR 1
+#define NULLUSER 2
+#define SQLERROR 3
 
 Database::Database(/* args */)
 {
@@ -67,24 +70,24 @@ void Database::disconnect()
 // 	return true;
 // }
 
-bool Database::login(std::string username, std::string password)
+int Database::login(std::string username, std::string password)
 {
     connect();
     char sql[256];
     MYSQL_RES* res;
     MYSQL_ROW row;
-    bool ret = false;
-    std::string query = "SELECT username FROM usercredentials WHERE username = '" + username + "' AND password = '" + password + "';";
-    ret = mysql_query(_mysql, query.c_str()); // 成功返回0
+    bool ret = SQLERROR;
+    std::string query = "SELECT password FROM usercredentials WHERE username = '" + username + "';";
+    ret = mysql_query(_mysql, query.c_str()); 
     if (ret != 0) {
         printf("数据库查询出错：%s", mysql_error(_mysql));
         disconnect();
-        return false;
+        return SQLERROR;
     }
     res = mysql_store_result(_mysql);
     if (!res) {
         disconnect();
-        return false;
+        return SQLERROR;
     }
     row = mysql_fetch_row(res);
 	disconnect();
@@ -92,25 +95,27 @@ bool Database::login(std::string username, std::string password)
 	
     if (row) 
 	{
-        return true;
+        if(std::string(row[0]) == password)return SUCCESS;
+        else if(std::string(row[0]) != "") return PASERROR;
     } 
 	else 
 	{
-        return false;
+        return NULLUSER;
     }
+    return 4;
 }
 
-bool Database::update(std::string ip, std::string mask, std::string geteway, std::string CpuID, std::string BiosID, std::string username)
+bool Database::update(std::string ip, std::string CpuID, std::string BiosID, std::string username)
 {	
     connect();
     MYSQL_RES* res;
     bool ret = false;
     std::string query = "UPDATE usercredentials SET ip_address = '"
     + ip
-    + "', mask = '"
-    + mask
-    + "', gateway = '"
-    + geteway
+    // + "', mask = '"
+    // + mask
+    // + "', gateway = '"
+    // + geteway
     + "', CpuID = '"
     + CpuID
     + "',BiosID = '"
