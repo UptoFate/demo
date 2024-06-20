@@ -93,16 +93,16 @@ int Database::login(std::string username, std::string password)
 	disconnect();
 	mysql_free_result(res);
 	
-    if (row) 
+    if (row != NULL) 
 	{
         if(std::string(row[0]) == password)return SUCCESS;
-        else if(std::string(row[0]) != "") return PASERROR;
+        else if(std::string(row[0]) != "") return PASERROR; 
     } 
 	else 
 	{
         return NULLUSER;
     }
-    return 4;
+    return SQLERROR;
 }
 
 bool Database::update(std::string ip, std::string CpuID, std::string BiosID, std::string username)

@@ -9,7 +9,7 @@ User::~User()
   
 }
 
-bool User::login()
+int User::login()
 {
     return Database().login(username_, password_);
 }

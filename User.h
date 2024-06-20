@@ -18,7 +18,7 @@ private:
 public:
     User(std::string ip);
     ~User();
-    bool login();
+    int login();
     bool updete();
     void getinfo(std::string username, std::string passworld, std::string CpuID, std::string BiosID);
     //bool regist();

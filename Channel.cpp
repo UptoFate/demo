@@ -241,9 +241,7 @@ void Channel::onmessage()
             std::string cmd = root["CMD"].asString();
             if (cmd == "LOGIN")
             {
-                std::cout<<"1";
                 Channel::userlist[fd_]->getinfo(root["username"].asString(), root["password"].asString(), root["CpuID"].asString(), root["BiosID"].asString());
-                std::cout<<"2";
                 std::cout<<"username:"<<root["username"].toStyledString()<<" \npassword:"<<root["password"].toStyledString()<<std::endl;
                 int validation =  userlist[fd_]->login() ;
                 if(validation == SUCCESS)
@@ -259,17 +257,17 @@ void Channel::onmessage()
                         root["Validation"] = "MODFAIL";
                     }
                 }
-                else if(validation = PASERROR)
+                else if(validation == PASERROR)
                 {
                     std::cout<<"密码错误"<<std::endl;
                     root["Validation"] = "PASERROR";
                 } 
-                else if(validation = NULLUSER)
+                else if(validation == NULLUSER)
                 {
                     std::cout<<"用户不存在"<<std::endl;
                     root["Validation"] = "NULLUSER";
                 }
-                else if(validation = SQLERROR)
+                else if(validation == SQLERROR)
                 {
                     std::cout<<"SQLERROR"<<std::endl;
                     root["Validation"] = "SQLERROR";
