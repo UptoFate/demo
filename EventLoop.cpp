@@ -22,8 +22,12 @@ void EventLoop::run()
     }
 }
 
-Epoll* EventLoop::ep()
+void EventLoop::updateChannel(Channel *ch)
 {
-    return ep_;
+    ep_->updateChannel(ch);
 }
 
+void EventLoop::closefd(int fd)
+{
+    ep_->closefd(fd);
+}

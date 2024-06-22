@@ -35,7 +35,7 @@ bool readline(int fd, char buf[], size_t buf_size) {
     return false;
 }
 
-Channel::Channel(Epoll*ep, int fd):ep_(ep),fd_(fd)
+Channel::Channel(EventLoop*loop, int fd):loop_(loop),fd_(fd)
 {
 
 }
@@ -47,7 +47,7 @@ Channel::~Channel()
 
 void Channel::_close(int fd)
 {
-    ep_->closefd(fd_);
+    loop_->closefd(fd_);
     if(Channel::userlist[fd] != nullptr)free(Channel::userlist[fd]);
 }
 
@@ -64,7 +64,7 @@ void Channel::useet()
 void Channel::enablereading()
 {
     events_ = events_|EPOLLIN;
-    ep_->updateChannel(this);
+    loop_->updateChannel(this);
 }   
 
 void Channel::setinepoll()
@@ -194,29 +194,6 @@ void Channel::handleevent()
     */
     //else if 可以加管道，unix套接字等等数据
 } 
-
-void Channel::newconnection(Socket* servsock)
-{
-    InetAddress clientaddr;
-    //客户端socket只能new出来，否则会被析构函数关闭fd
-    //还未释放
-    Socket *clientsock=new Socket(servsock->accept(clientaddr));
-
-    //设置该句柄为边缘触发（数据没处理完后续不会再触发事件，水平触发是不管数据有没有触发都返回事件），
-    Channel *clientchannel = new Channel(ep_, clientsock->fd());
-    clientchannel->setreadcallback(std::bind(&Channel::onmessage, clientchannel));
-    //测试GET
-    //clientchannel->setreadcallback(std::bind(&Channel::read_client_request, clientchannel));
-
-    clientchannel->useet();
-    clientchannel->enablereading();
-    //userlist[fd_] = std::make_unique<User>(clientaddr.ip());
-    if (clientsock->fd() >= userlist.size()) {
-        Channel::userlist.resize(clientsock->fd() + 1);
-    }
-    Channel::userlist[clientsock->fd()] = new User(clientaddr.ip());
-    printf("accept client(fd=%d,ip=%s,port=%d)ok\n", clientsock->fd(), clientaddr.ip(), clientaddr.port());
-}     
 
 void Channel::onmessage()
 {

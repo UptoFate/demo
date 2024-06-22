@@ -3,6 +3,10 @@
 
 #include "Epoll.h"
 
+class Channel;
+class Epoll;
+
+//事件循环类
 class EventLoop
 {
 private:
@@ -11,7 +15,9 @@ public:
     EventLoop();            //创建Epoll
     ~EventLoop();           //销毁Epoll
     void run();             //运行事件循环
-    Epoll* ep();
+
+    void updateChannel(Channel *ch);          //把chnnel添加/更新到红黑树上，添加事件
+    void closefd(int fd);
 };
 
 
