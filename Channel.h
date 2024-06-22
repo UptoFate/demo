@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <vector>
+#include "./myssl/myssl.h"
 #include "EventLoop.h"
 #include "InetAddress.h"
 #include "Socket.h"

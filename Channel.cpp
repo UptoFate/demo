@@ -198,15 +198,16 @@ void Channel::handleevent()
 void Channel::onmessage()
 {
     char buf[1024]={0};// 使用非阻塞I/O，每次读取buffer大小数据直到读完
-        
+    SSL *ssl = init_ssl("./myssl/cert.pem", "./myssl/key.pem", SSL_MODE_SERVER, fd_);   
     while (true){
+
         bzero (&buf, sizeof(buf));
-        ssize_t nread = read (fd_ , buf , sizeof (buf));
+        ssize_t nread = SSL_read (ssl , buf , sizeof (buf));
         //成功读取到了数据。
         if (nread>0){
             //把接收到的报文内容原封不动的发回去。
             //printf ("recv(eventfd=%d):%s\n",fd_, buf);
-            send (fd_, buf, strlen(buf),0);
+            SSL_write(ssl, buf, strlen(buf)+1);
 
             Json::Reader reader;
             Json::Value root;
@@ -255,9 +256,8 @@ void Channel::onmessage()
                 std::cout<<"unknow command"<<std::endl;
             }
             std::string style = root.toStyledString();
-            send (fd_, style.c_str(), strlen(style.c_str()),0);
+            SSL_write(ssl, style.c_str(), strlen(style.c_str())+1);
             std::cout << style << std::endl;
-            
         }
         
         //读取数据的时候被信号中断，继续读取。
@@ -272,6 +272,8 @@ void Channel::onmessage()
             break ;
         }
     }
+    SSL_shutdown(ssl);
+    SSL_free(ssl);
 }
 
 void  Channel::setreadcallback(std::function<void()> fn)

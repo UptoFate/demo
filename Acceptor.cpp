@@ -36,12 +36,18 @@ void Acceptor::newconnection()
     // //clientchannel->setreadcallback(std::bind(&Channel::read_client_request, clientchannel));
     // clientchannel->useet();
     // clientchannel->enablereading();
+    std::cout<<"222222"<<std::endl;
+    SSL *ssl = init_ssl("cert.pem", "key.pem", SSL_MODE_SERVER, clientsock->fd());   
+    SSL_shutdown(ssl);
+    SSL_free(ssl);
+    std::cout<<"222222"<<std::endl;
     Connection* conn = new Connection(loop_, clientsock);   //还未释放
 
     //userlist[fd_] = std::make_unique<User>(clientaddr.ip());
     if (clientsock->fd() >= Channel::userlist.size()) {
         Channel::userlist.resize(clientsock->fd() + 1);
     }
+
     Channel::userlist[clientsock->fd()] = new User(clientaddr.ip());
     printf("accept client(fd=%d,ip=%s,port=%d)ok\n", clientsock->fd(), clientaddr.ip(), clientaddr.port());
 }  

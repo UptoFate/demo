@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include "InetAddress.h"
 
-
 class Socket
 {
 private:
