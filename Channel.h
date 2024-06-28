@@ -11,7 +11,7 @@
 #include "InetAddress.h"
 #include "Socket.h"
 #include "User.h"
-
+#include "myEncrypt.h"
 
 
 class EventLoop;

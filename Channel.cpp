@@ -212,10 +212,20 @@ void Channel::onmessage()
             //printf ("recv(eventfd=%d):%s\n",fd_, buf);
             //SSL_write(ssl, buf, strlen(buf)+1);
             send (fd_, buf, strlen(buf),0);
+            //std::cout<<buf<<std::endl;
+            EVP_PKEY* publicKey = loadPublicKey("public_key.pem");
+            EVP_PKEY* privateKey = loadPrivateKey("private_key.pem");
+            std::vector<unsigned char> str(buf, buf + nread); 
+            //std::cout<<rsaDecrypt(privateKey,str)<<std::endl;
             Json::Reader reader;
             Json::Value root;
-            bool parsingSuccess = reader.parse(buf, root);
-                if (!parsingSuccess) {
+            //bool parsingSuccess = reader.parse(buf, root);
+            // for(char i:str){
+            //     printf("%02x", i);
+            // }
+            std::cout<<std::endl;
+            bool parsingSuccess = reader.parse(rsaDecrypt(privateKey,str), root);
+            if (!parsingSuccess) {
                 std::cerr << "Failed to parse JSON string" << std::endl;
                 break;
             }
