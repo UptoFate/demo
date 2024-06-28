@@ -218,57 +218,77 @@ void Channel::onmessage()
             std::vector<unsigned char> str(buf, buf + nread); 
             //std::cout<<rsaDecrypt(privateKey,str)<<std::endl;
             Json::Reader reader;
+            Json::FastWriter writer;
             Json::Value root;
+            Json::Value data;
+            std::string hashcode;
             //bool parsingSuccess = reader.parse(buf, root);
             // for(char i:str){
             //     printf("%02x", i);
             // }
-            std::cout<<std::endl;
-            bool parsingSuccess = reader.parse(rsaDecrypt(privateKey,str), root);
+            //std::cout<<std::endl;
+            std::string decrypted = rsaDecrypt(privateKey,str);
+            //std::cout<<decrypted<<std::endl;
+            bool parsingSuccess = reader.parse(decrypted, root);
             if (!parsingSuccess) {
                 std::cerr << "Failed to parse JSON string" << std::endl;
                 break;
             }
-            std::string cmd = root["CMD"].asString();
+            std::cout<<root.toStyledString()<<std::endl;
+            data = root["Data"];
+            hashcode = root["HashCode"].asString();
+            std::string toCalculate = writer.write(data);
+            // std::cout<<"hashcode:"<< hashcode <<"\n toCalculate:" << toCalculate<<"[s]" << std::endl;
+            // std::cout<<"TOCALCULATE:"<<sha256(toCalculate)<<std::endl;
+            if(sha256(toCalculate) == hashcode)
+            {
+                std::cout<<"哈希值验证成功"<<std::endl;
+            }
+            else
+            {
+                std::cout<<"哈希值验证失败"<<std::endl;
+                break;
+            }
+            std::string cmd = data["CMD"].asString();
             if (cmd == "LOGIN")
             {
-                Channel::userlist[fd_]->getinfo(root["username"].asString(), root["password"].asString(), root["CpuID"].asString(), root["BiosID"].asString());
-                std::cout<<"username:"<<root["username"].toStyledString()<<" \npassword:"<<root["password"].toStyledString()<<std::endl;
+                Channel::userlist[fd_]->getinfo(data["username"].asString(), data["password"].asString(), data["CpuID"].asString(), data["BiosID"].asString());
+                //std::cout<<"username:"<<data["username"].toStyledString()<<" \npassword:"<<data["password"].toStyledString()<<std::endl;
                 int validation =  userlist[fd_]->login() ;
                 if(validation == SUCCESS)
                 {                    
                     std::cout <<"登入成功"<<std::endl;
-                    root["Validation"] = "SUCCESS";
+                    data["Validation"] = "SUCCESS";
 
                     if(userlist[fd_]->updete()){
                         std::cout <<"修改数据成功"<<std::endl;
                     }
                     else{
                         std::cout <<"修改数据失败"<<std::endl;
-                        root["Validation"] = "MODFAIL";
+                        data["Validation"] = "MODFAIL";
                     }
                 }
                 else if(validation == PASERROR)
                 {
                     std::cout<<"密码错误"<<std::endl;
-                    root["Validation"] = "PASERROR";
+                    data["Validation"] = "PASERROR";
                 } 
                 else if(validation == NULLUSER)
                 {
                     std::cout<<"用户不存在"<<std::endl;
-                    root["Validation"] = "NULLUSER";
+                    data["Validation"] = "NULLUSER";
                 }
                 else if(validation == SQLERROR)
                 {
                     std::cout<<"SQLERROR"<<std::endl;
-                    root["Validation"] = "SQLERROR";
+                    data["Validation"] = "SQLERROR";
                 }
             }
             else
             {
                 std::cout<<"unknow command"<<std::endl;
             }
-            std::string style = root.toStyledString();
+            std::string style = data.toStyledString();
             //SSL_write(ssl, style.c_str(), strlen(style.c_str())+1);
             send (fd_, style.c_str(), strlen(style.c_str()),0);
             std::cout << style << std::endl;

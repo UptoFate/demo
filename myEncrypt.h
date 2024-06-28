@@ -6,6 +6,9 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <openssl/sha.h>
 
 // 错误处理函数
 void handleErrors() ;
@@ -20,3 +23,6 @@ std::vector<unsigned char> rsaEncrypt(EVP_PKEY* pubKey, const std::string& plain
 
 // 使用私钥解密
 std::string rsaDecrypt(EVP_PKEY* privKey, const std::vector<unsigned char>& ciphertext);
+
+//sha256 生成hash
+std::string sha256(const std::string& input);
