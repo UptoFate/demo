@@ -36,6 +36,7 @@ SSL *init_ssl(char* cert_path, char* key_path, SSL_MOOD mode, int fd){
         printf("Not found cert file or private key file.\n");
         return 0;
     }
+    SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, nullptr);
     ssl = SSL_new(ctx);
     if(!ssl){
         printf("Failed to create SSL object.\n");
@@ -48,8 +49,7 @@ SSL *init_ssl(char* cert_path, char* key_path, SSL_MOOD mode, int fd){
         return 0;
     }
 
-    if((mode == SSL_MODE_CLIENT && SSL_connect(ssl)<=0) ||
-    (mode == SSL_MODE_SERVER && SSL_accept(ssl)<=0)){
+    if(mode == SSL_MODE_SERVER && SSL_accept(ssl)<=0){
         printf("failed to handshake.\n");
         perror("accept");
         printf("%d",fd);

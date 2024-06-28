@@ -3,7 +3,8 @@
 #define SUCCESS 0
 #define PASERROR 1
 #define NULLUSER 2
-#define SQLERROR 3
+ #define SQLERROR 3
+
 std::vector<User*> Channel::userlist;
 
 bool readline(int fd, char buf[], size_t buf_size) {
@@ -198,17 +199,19 @@ void Channel::handleevent()
 void Channel::onmessage()
 {
     char buf[1024]={0};// 使用非阻塞I/O，每次读取buffer大小数据直到读完
-    SSL *ssl = init_ssl("./myssl/cert.pem", "./myssl/key.pem", SSL_MODE_SERVER, fd_);   
+    //SSL *ssl = init_ssl("./myssl/cert.pem", "./myssl/key.pem", SSL_MODE_SERVER, fd_);   
     while (true){
 
         bzero (&buf, sizeof(buf));
-        ssize_t nread = SSL_read (ssl , buf , sizeof (buf));
+        //ssize_t nread = SSL_read (ssl , buf , sizeof (buf));
+        ssize_t nread = read (fd_ , buf , sizeof (buf));
+        
         //成功读取到了数据。
         if (nread>0){
             //把接收到的报文内容原封不动的发回去。
             //printf ("recv(eventfd=%d):%s\n",fd_, buf);
-            SSL_write(ssl, buf, strlen(buf)+1);
-
+            //SSL_write(ssl, buf, strlen(buf)+1);
+            send (fd_, buf, strlen(buf),0);
             Json::Reader reader;
             Json::Value root;
             bool parsingSuccess = reader.parse(buf, root);
@@ -256,7 +259,8 @@ void Channel::onmessage()
                 std::cout<<"unknow command"<<std::endl;
             }
             std::string style = root.toStyledString();
-            SSL_write(ssl, style.c_str(), strlen(style.c_str())+1);
+            //SSL_write(ssl, style.c_str(), strlen(style.c_str())+1);
+            send (fd_, style.c_str(), strlen(style.c_str()),0);
             std::cout << style << std::endl;
         }
         
@@ -272,8 +276,8 @@ void Channel::onmessage()
             break ;
         }
     }
-    SSL_shutdown(ssl);
-    SSL_free(ssl);
+    //SSL_shutdown(ssl);
+    //SSL_free(ssl);
 }
 
 void  Channel::setreadcallback(std::function<void()> fn)

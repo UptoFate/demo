@@ -37,9 +37,9 @@ void Acceptor::newconnection()
     // clientchannel->useet();
     // clientchannel->enablereading();
     std::cout<<"222222"<<std::endl;
-    SSL *ssl = init_ssl("cert.pem", "key.pem", SSL_MODE_SERVER, clientsock->fd());   
-    SSL_shutdown(ssl);
-    SSL_free(ssl);
+    // SSL *ssl = init_ssl("cert.pem", "key.pem", SSL_MODE_SERVER, clientsock->fd());   
+    // SSL_shutdown(ssl);
+    // SSL_free(ssl);
     std::cout<<"222222"<<std::endl;
     Connection* conn = new Connection(loop_, clientsock);   //还未释放
 
