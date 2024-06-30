@@ -25,6 +25,16 @@ int Socket:: fd() const
     return m_fd;
 }   
 
+std::string Socket::ip() const
+{
+    return ip_;
+}   
+
+uint16_t Socket::port() const
+{
+    return port_;
+}   
+
 void Socket:: setreuseaddr(bool on)
 {
     int optval = on?1 : 0;
@@ -57,6 +67,8 @@ void Socket:: bind(const InetAddress serveraddr)
         printf("fail to bind!,errno :%d",errno);
         exit(-1);
     }
+    ip_ = serveraddr.ip();
+    port_ = serveraddr.port();
 }
 
 void Socket:: listen(int n)
@@ -75,5 +87,7 @@ int Socket:: accept(InetAddress& m_clientaddr )
     socklen_t client_addrlength = sizeof(peeraddr);
     int clientfd = ::accept4(m_fd, (sockaddr*)&peeraddr, &client_addrlength,SOCK_NONBLOCK);
     m_clientaddr.setaddr(peeraddr);
+    ip_ = m_clientaddr.ip();
+    port_ = m_clientaddr.port();
     return clientfd;
 }

@@ -17,12 +17,14 @@ private:
     EventLoop *loop_;
     Socket *servsock_;
     Channel *acceptchannel_;
+    std::function<void(Socket*)> newconnectioncb_;  //处理新客户端连接请求的回调函数
 public:
     Acceptor(EventLoop *loop, const std::string &ip, const uint16_t port);
     ~Acceptor();
 
     void newconnection();                   //处理新客户端连接请求
 
+    void setnewconnectioncb(std::function<void(Socket*)> fn);   //设置新客户端连接请求的回调函数
 };
 
 #endif

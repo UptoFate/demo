@@ -41,7 +41,8 @@ void Acceptor::newconnection()
     // SSL_shutdown(ssl);
     // SSL_free(ssl);
 
-    Connection* conn = new Connection(loop_, clientsock);   //还未释放
+    //Connection* conn = new Connection(loop_, clientsock);
+    newconnectioncb_(clientsock);
 
     //userlist[fd_] = std::make_unique<User>(clientaddr.ip());
     if (clientsock->fd() >= Channel::userlist.size()) {
@@ -51,3 +52,8 @@ void Acceptor::newconnection()
     Channel::userlist[clientsock->fd()] = new User(clientaddr.ip());
     printf("accept client(fd=%d,ip=%s,port=%d)ok\n", clientsock->fd(), clientaddr.ip(), clientaddr.port());
 }  
+
+void Acceptor::setnewconnectioncb(std::function<void(Socket*)> fn)
+{
+    newconnectioncb_ = fn;
+}

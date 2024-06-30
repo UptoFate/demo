@@ -160,24 +160,12 @@ void Channel::handleevent()
     //连接中断
     if (revents_ & (EPOLLRDHUP | EPOLLHUP | EPOLLERR))
     {
-        printf("client(eventfd=%d) disconnected.\n", fd_);
-        _close(fd_);
+        closecallback_();
+        if(Channel::userlist[fd_] != nullptr)free(Channel::userlist[fd_]);    //这个后续再改
     }
     //缓冲区有数据可读 
     else if (revents_ & EPOLLIN|EPOLLPRI)
     {
-        /*
-        // 属于处理新到的客户连接 // listen事件——有新客户端连接
-        if (islisten_) //ch==servchannel
-        {
-            newconnection(servsock);
-        } 
-
-        // 处理客户连接上接收到的数据
-        else{
-            onmessage();
-        }
-        */
        readcallback_();     //采用回调函数实现以上操作
     }
     //写事件
@@ -194,6 +182,11 @@ void Channel::handleevent()
     }
     */
     //else if 可以加管道，unix套接字等等数据
+    else
+    {
+        errorcallback_();
+        if(Channel::userlist[fd_] != nullptr)free(Channel::userlist[fd_]);    //这个后续再改
+    }
 } 
 
 void Channel::onmessage()
@@ -228,11 +221,14 @@ void Channel::onmessage()
             // }
             //std::cout<<std::endl;
             std::string decrypted = rsaDecrypt(privateKey,str);
+            EVP_PKEY_free(publicKey);
+            EVP_PKEY_free(privateKey);
             //std::cout<<decrypted<<std::endl;
             bool parsingSuccess = reader.parse(decrypted, root);
             if (!parsingSuccess) {
                 std::cerr << "Failed to parse JSON string" << std::endl;
-                break;
+                errorcallback_();
+                if(Channel::userlist[fd_] != nullptr)free(Channel::userlist[fd_]);    //这个后续再改
             }
             std::cout<<root.toStyledString()<<std::endl;
             data = root["Data"];
@@ -302,7 +298,9 @@ void Channel::onmessage()
         else if (nread ==0)//客户端连接已断开。
         {
             printf (" client(eventfd=%d)disconnected.\n ", fd_);
-            _close(fd_ );//关闭客户端的fd
+            //_close(fd_ );//关闭客户端的fd
+            closecallback_();
+            if(Channel::userlist[fd_] != nullptr)free(Channel::userlist[fd_]);    //这个后续再改
             break ;
         }
     }
@@ -383,4 +381,14 @@ void Channel::send_file(char* path)
     }
     _close(fd);
 
+}
+
+void Channel::setclosecallback(std::function<void()> fn)
+{
+    closecallback_ = fn;
+}
+
+void Channel::seterrorcallback(std::function<void()> fn)
+{
+    errorcallback_ = fn;
 }
