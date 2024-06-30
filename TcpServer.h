@@ -22,6 +22,9 @@ public:
     void newconnection(Socket* clientsock);         //处理新客户端连接请求
     void closeconnection(Connection *conn);         //关闭客户端连接，在Connection中调用    
     void errorconnection(Connection *conn);         //客户端连接错误，在Connection中调用  
+    void onmessage(Connection *conn, std::string message);      //处理客户端的请求报文在Connection中回调
+    void sendcmplete(Connection *conn);             //数据发送完成后回调
+    void epolltimeout(EventLoop*loop);          //epoll_wait()超时
 };
 
 

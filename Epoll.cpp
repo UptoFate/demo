@@ -81,12 +81,17 @@ std::vector<Channel*> Epoll:: loop(int timeout)
     int infds = epoll_wait(epollfd_, events_, MAX_EVENT, timeout); 
     if (infds < 0 )
     {
+        //EBADF : epfd不是一个有效的描述符。
+        //EFAULT:参数events指向的内存区域不可写。
+        //EINVAL : epfd不是一个epoll文件描述符，或者参数maxevents小于等于0。
+        //EINTR︰阻塞过程中被信号中断，epoll_pwait()可以避免，或者错误处理中，解析error后重新调用epoll_wait()。
+
         printf( "epoll_wait() failure");
         exit(-1);
     }
     if (infds == 0 )
     {
-        printf( "epoll_wait() timeout.\n");
+        //printf( "epoll_wait() timeout.\n");
         return channels;
     }
     for (int i = 0; i < infds; i++)

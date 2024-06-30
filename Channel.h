@@ -31,6 +31,7 @@ private:
     std::function<void()> readcallback_;    //fd_读事件的回调函数
     std::function<void()> closecallback_;    //关闭fd_的回调函数
     std::function<void()> errorcallback_;    //fd_发生错误的回调函数
+    std::function<void()> writecallback_;   //fd_写事件的回调函数
 
     void _close(int fd);
 public:
@@ -41,6 +42,10 @@ public:
     int fd();                               //返回fd_
     void useet();                           //采用边缘触发
     void enablereading();                   //让epoll_wait()监视fd_的读事件
+    void disablereading();                  //取消读事件
+    void enablewriting();                   //让epoll_wait()监视fd_的写事件
+    void disablewriting();                   //取消写事件
+
     void setinepoll();                      //设置inepoll_
     void setrevent(uint32_t events);         //设置inepoll_
     bool inepoll();
@@ -53,6 +58,7 @@ public:
     void setreadcallback(std::function<void()> fn);         //设置fd_读事件的回调函数
     void setclosecallback(std::function<void()> fn);        //设置关闭fd_的回调函数
     void seterrorcallback(std::function<void()> fn);        //设置fd_发生错误的回调函数
+    void setwritecallback(std::function<void()> fn);        //设置fd_写事件的回调函数
 
     //测试websocket用
     //bool isHTTPRequest();

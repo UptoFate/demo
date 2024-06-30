@@ -14,6 +14,7 @@ Connection:: Connection(EventLoop *loop, Socket *clientsock):loop_(loop), client
     clientchannel_->setreadcallback(std::bind(&Connection::onmessage, this));
     clientchannel_->setclosecallback(std::bind(&Connection::closecallback, this));
     clientchannel_->seterrorcallback(std::bind(&Connection::errorcallback, this));
+    clientchannel_->setwritecallback(std::bind(&Connection::writecallback, this));
     //测试GET
     //clientchannel->setreadcallback(std::bind(&Channel::read_client_request, clientchannel));
 
@@ -64,6 +65,16 @@ void Connection::seterrorcallback(std::function<void(Connection*)> fn)
     errorcallback_ = fn;
 }
 
+void Connection::setonmessagercallback(std::function<void(Connection*, std::string)> fn)
+{
+    onmessagecallback_ = fn;
+}
+
+void Connection::sendcompletecallback(std::function<void(Connection*)> fn)
+{
+    sendcompletecallback_= fn;
+}
+
 void Connection::onmessage()
 {
     char buf[1024]={0};// 使用非阻塞I/O，每次读取buffer大小数据直到读完
@@ -87,10 +98,19 @@ void Connection::onmessage()
             //send (fd(), buf, strlen(buf),0);
             //std::cout<<buf<<std::endl;
             inputbuffer_.append(buf, nread);
-
+        }
+        //读取数据的时候被信号中断，继续读取。
+        else if (nread ==-1 && errno == EINTR )continue;
+        //全部的数据已读取完毕。 
+        else if (nread ==-1 &&(( errno == EAGAIN )||( errno == EWOULDBLOCK )))
+        {   
+            if(inputbuffer_.size())printf ("recv(eventfd=%d):%s\n",fd(), inputbuffer_.data());
+            std::string message(inputbuffer_.data(),inputbuffer_.size());
+            if(message.size()>0)onmessagecallback_(this,message);
+            /*
             EVP_PKEY* publicKey = loadPublicKey("public_key.pem");
             EVP_PKEY* privateKey = loadPrivateKey("private_key.pem");
-            std::vector<unsigned char> str(buf, buf + nread); 
+            std::vector<unsigned char> str(inputbuffer_.data(), inputbuffer_.data() + inputbuffer_.size()); 
             //std::cout<<rsaDecrypt(privateKey,str)<<std::endl;
             Json::Reader reader;
             Json::FastWriter writer;
@@ -170,24 +190,18 @@ void Connection::onmessage()
             //SSL_write(ssl, style.c_str(), strlen(style.c_str())+1);
             send (fd(), style.c_str(), strlen(style.c_str()),0);
             //std::cout << style << std::endl;
-        }
-        
-        //读取数据的时候被信号中断，继续读取。
-        else if (nread ==-1 && errno == EINTR )continue;
-        //全部的数据已读取完毕。 
-        else if (nread ==-1 &&(( errno == EAGAIN )||( errno == EWOULDBLOCK )))
-        {   
-            printf ("recv(eventfd=%d):%s\n",fd(), inputbuffer_.data());
-            //经过运算...
-            outputbuffer_ = inputbuffer_;
+            */
+
+            //outputbuffer_ = inputbuffer_;
             inputbuffer_.clear();
-            //send (fd(), outputbuffer_.data(), outputbuffer_.size(),0);      //暂时不要这么做
-            break;
+            //send (outputbuffer_.data(), outputbuffer_.size());      //暂时不要这么做
+            
+           break;
         }
         else if (nread ==0)//客户端连接已断开。
         {
-            closecallback();
             printf (" client(eventfd=%d)disconnected.\n ", fd());
+            closecallback();
             //_close(fd_ );//关闭客户端的fd
             //if(Channel::userlist[fd()] != nullptr)free(Channel::userlist[fd()]);    //这个后续再改
             break ;
@@ -195,4 +209,25 @@ void Connection::onmessage()
     }
     //SSL_shutdown(ssl);
     //SSL_free(ssl);
+}
+
+void Connection::send(const char*data, size_t size)
+{
+    outputbuffer_.append(data, size);
+    //注册写事件
+    std::string s(data,size);
+    std::cout <<"send:" <<s <<"size:"<<size<<"aaaaa";
+    clientchannel_->enablewriting();
+}
+
+void Connection::writecallback()
+{
+    int writen=::send(fd(), outputbuffer_.data(), outputbuffer_.size(), 0);
+    if(writen>0)outputbuffer_.eraser(0,writen);
+    //发送缓冲区没有数据不再关注写事件
+    if(outputbuffer_.size()==0)
+    {
+        clientchannel_->disablewriting();
+        sendcompletecallback_(this);
+    }
 }

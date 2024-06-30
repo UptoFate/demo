@@ -1,16 +1,5 @@
 #include "Channel.h"
 
-// #define SUCCESS 0
-// #define PASERROR 1
-// #define NULLUSER 2
-// #define SQLERROR 3
-enum LOGIN{
-    SUCCESS,
-    PASERROR,
-    NULLUSER,
-    SQLERROR
-};
-
 std::vector<User*> Channel::userlist;
 
 bool readline(int fd, char buf[], size_t buf_size) {
@@ -73,6 +62,24 @@ void Channel::enablereading()
     events_ = events_|EPOLLIN;
     loop_->updateChannel(this);
 }   
+
+void Channel::disablereading()
+{
+    events_ = events_&~EPOLLIN;
+    loop_->updateChannel(this);
+}
+
+void Channel::enablewriting()
+{
+    events_ = events_|EPOLLOUT;
+    loop_->updateChannel(this);
+}
+
+void Channel::disablewriting()
+{
+    events_ = events_&~EPOLLOUT;
+    loop_->updateChannel(this);
+}
 
 void Channel::setinepoll()
 {
@@ -175,18 +182,10 @@ void Channel::handleevent()
        readcallback_();     //采用回调函数实现以上操作
     }
     //写事件
-    /*
-    else if (ch->fd() & EPOLLOUT)
+    else if (revents_ & EPOLLOUT)
     {
-        std::string response = "server response \n";
-        write(sockfd,response.c_str(),response.length());
-
-        // 将事件设置为读事件，继续监听客户端
-        ch->fd() = sockfd;
-        ev.events = EPOLLIN | EPOLLRDHUP;
-        epoll_ctl(m_epollfd, EPOLL_CTL_MOD, sockfd, &events[i]);
+        writecallback_();
     }
-    */
     //else if 可以加管道，unix套接字等等数据
     else
     {
@@ -243,6 +242,7 @@ void Channel::send_header(int code, char* info, char* filetype, int length)
     //空行
     send(fd_, "\r\n", 2, 0);
 } 
+
 void Channel::send_file(char* path)
 {
     int fd = open(path, O_RDONLY);
@@ -278,4 +278,9 @@ void Channel::setclosecallback(std::function<void()> fn)
 void Channel::seterrorcallback(std::function<void()> fn)
 {
     errorcallback_ = fn;
+}
+
+void Channel::setwritecallback(std::function<void()> fn)
+{
+    writecallback_ = fn;
 }
