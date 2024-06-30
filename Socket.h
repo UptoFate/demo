@@ -22,6 +22,8 @@ public:
     int fd() const;     //返回fd成员
     std::string ip() const;
     uint16_t port() const;
+    void setipport(const std::string& ip, uint16_t port);
+
     void setreuseaddr(bool on);         //设置SO_REUSEADDR
     void setreuseport(bool on);         //设置SO_REUSEPORT
     void settcpnodelay(bool on);        //设置TCP_NODELAY

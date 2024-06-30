@@ -42,6 +42,7 @@ void Acceptor::newconnection()
     // SSL_free(ssl);
 
     //Connection* conn = new Connection(loop_, clientsock);
+    clientsock->setipport(clientaddr.ip(), clientaddr.port());
     newconnectioncb_(clientsock);
 
     //userlist[fd_] = std::make_unique<User>(clientaddr.ip());

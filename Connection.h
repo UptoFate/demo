@@ -1,11 +1,12 @@
 #ifndef __CONNECTION__
-#define __CONNECTION__
+#define __CONNECTION__  
 
 #include <functional>
 #include "Socket.h"
 #include "InetAddress.h"
 #include "EventLoop.h"
 #include "Channel.h"
+#include "Buffer.h"
 
 class Channel;
 class EventLoop;
@@ -16,6 +17,9 @@ private:
     EventLoop *loop_;
     Socket *clientsock_;
     Channel *clientchannel_;
+    Buffer inputbuffer_;         //接收缓冲区
+    Buffer outputbuffer_;        //发送缓冲区
+
     std::function<void(Connection*)> closecallback_;        //关闭连接回调，将回调Tcpserver中的closeconnection
     std::function<void(Connection*)> errorcallback_;        //连接错误回调，将回调Tcpserver中的errorconnection
 
@@ -26,6 +30,7 @@ public:
     std::string ip() const;
     uint16_t port() const;
 
+    void onmessage();
     void closecallback();       //TCP连接断开的回调函数，供Channel回调
     void errorcallback();       //TCP连接错误的回调函数，供Channel回调
 

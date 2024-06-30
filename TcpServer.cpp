@@ -29,7 +29,7 @@ void TcpServer::newconnection(Socket* clientsock)
 
 void TcpServer::closeconnection(Connection *conn)
 {
-    printf("client(eventfd=%d) disconnected.\n", conn->fd());
+    printf("Client(eventfd=%d) disconnected.\n", conn->fd());
     conns_.erase(conn->fd());   //conn里会关fd
     delete conn;
 }

@@ -67,8 +67,13 @@ void Socket:: bind(const InetAddress serveraddr)
         printf("fail to bind!,errno :%d",errno);
         exit(-1);
     }
-    ip_ = serveraddr.ip();
-    port_ = serveraddr.port();
+    setipport(serveraddr.ip(), serveraddr.port());
+    }
+
+void Socket:: setipport(const std::string& ip, uint16_t port)
+{
+    ip_=ip;
+    port_=port;
 }
 
 void Socket:: listen(int n)
@@ -87,7 +92,6 @@ int Socket:: accept(InetAddress& m_clientaddr )
     socklen_t client_addrlength = sizeof(peeraddr);
     int clientfd = ::accept4(m_fd, (sockaddr*)&peeraddr, &client_addrlength,SOCK_NONBLOCK);
     m_clientaddr.setaddr(peeraddr);
-    ip_ = m_clientaddr.ip();
-    port_ = m_clientaddr.port();
+
     return clientfd;
 }
