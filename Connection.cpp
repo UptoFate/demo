@@ -65,7 +65,7 @@ void Connection::seterrorcallback(std::function<void(Connection*)> fn)
     errorcallback_ = fn;
 }
 
-void Connection::setonmessagercallback(std::function<void(Connection*, std::string)> fn)
+void Connection::setonmessagercallback(std::function<void(Connection*, std::string&)> fn)
 {
     onmessagecallback_ = fn;
 }

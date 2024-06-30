@@ -14,7 +14,7 @@
 // #include <json/json.h>
 // #include "Channel.h"
 // #include "EventLoop.h"
-#include "TcpServer.h"
+#include "EchoServer.h"
 
 const int MAX_EVENT_NUMBER = 10000; //最大事件数
 
@@ -25,9 +25,9 @@ int main(int argc, char* argv[]){
         return -1; 
     }
 
-    TcpServer tcpserver(argv[1],atoi(argv[2]));
+    EchoServer echoserver(argv[1],atoi(argv[2]));
 
     //进入服务器循环
-    tcpserver.start();
+    echoserver.start();
 }
 

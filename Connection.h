@@ -22,7 +22,7 @@ private:
 
     std::function<void(Connection*)> closecallback_;        //关闭连接回调，将回调Tcpserver中的closeconnection
     std::function<void(Connection*)> errorcallback_;        //连接错误回调，将回调Tcpserver中的errorconnection
-    std::function<void(Connection*, std::string)> onmessagecallback_;       //处理报文回调函数 
+    std::function<void(Connection*, std::string&)> onmessagecallback_;       //处理报文回调函数 
     std::function<void(Connection*)> sendcompletecallback_;       //数据发送完成回调函数 
 
 public:
@@ -39,7 +39,7 @@ public:
 
     void setclosecallback(std::function<void(Connection*)> fn);        //设置关闭fd_的回调函数
     void seterrorcallback(std::function<void(Connection*)> fn);        //设置fd_发生错误的回调函数
-    void setonmessagercallback(std::function<void(Connection*, std::string)> fn);       //设置处理报文回调函数
+    void setonmessagercallback(std::function<void(Connection*, std::string&)> fn);       //设置处理报文回调函数
     void sendcompletecallback(std::function<void(Connection*)> fn);       //设置数据发送完成回调函数
 
     void send(const char*data, size_t size);

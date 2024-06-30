@@ -14,6 +14,7 @@ public:
     ~Buffer();
 
     void append(const char* data, size_t size); //把数据加入Buffer
+    void appendwithhead(const char*data, size_t size);  //把数据加入Buffer 附加报头
     void eraser(size_t pos, size_t nn);         //从pos开始删除nn个字节      
     size_t size();          //返回Buffer大小
     const char* data();     //返回Buffer首地址
