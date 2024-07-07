@@ -7,15 +7,18 @@
 #include "EventLoop.h"
 #include "Acceptor.h"
 #include "Connection.h"
+#include "ThreadPool.h"
 
 //网络服务类
 class TcpServer
 {
 private:
-    EventLoop loop_;                //一个TCPServer可以有多个事件循环，现在是单线程，暂时只用一个
+    EventLoop *mainloop_;            //主事件循环既可以堆内存，也可以栈内存，但是从事件只能堆内存    
+    std::vector<EventLoop*>subloops_;//一个TCPServer可以有多个事件循环，现在是单线程，暂时只用一个
     Acceptor *acceptor_;            //一个TCPserver 只有一个 acceptor对象
     std::map<int, Connection*> conns_;
-
+    ThreadPool *threadpool_;        //线程池
+    int threadnum_;                 //线程池大小（从事件循环个数）
     std::function<void(Connection*)> newconnectioncb_;                  //回调EchoServer::HandleNewConnection()。    
     std::function<void(Connection*)> closecohnectioncb_;                //回调EchoServer::HandleClose()。
     std::function<void(Connection*)> errorconnectioncb_;                //回调EchoServer::HandleError().
@@ -24,7 +27,7 @@ private:
     std::function<void(EventLoop*)>timeoutcb_;                          //回调EchoServer::HandleTimeOut
 
 public:
-    TcpServer(const std::string &ip, const uint16_t port);
+    TcpServer(const std::string &ip, const uint16_t port, int threadnum=3);
     ~TcpServer();
     void start();                   //进入服务器循环
     void newconnection(Socket* clientsock);         //处理新客户端连接请求

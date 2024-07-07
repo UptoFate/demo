@@ -10,7 +10,7 @@ enum LOGIN{
     UNKNOWCMD
 };
 
-EchoServer::EchoServer(const std::string &ip, const uint16_t port):tcpserver_(ip,port)
+EchoServer::EchoServer(const std::string &ip, const uint16_t port,  int threadnum):tcpserver_(ip,port,threadnum)
 {
     tcpserver_.setnewconnectioncb(std::bind(&EchoServer::HandleNewConnection, this, std::placeholders::_1));
     tcpserver_.setclosecohnectioncb(std::bind(&EchoServer::HandleClose, this, std::placeholders::_1));
@@ -76,8 +76,8 @@ void EchoServer::HandleMessage(Connection *conn, std::string& message)
     data = root["Data"];
     hashcode = root["HashCode"].asString();
     std::string toCalculate = writer.write(data);
-    // std::cout<<"hashcode:"<< hashcode <<"\n toCalculate:" << toCalculate<<"[s]" << std::endl;
-    // std::cout<<"TOCALCULATE:"<<sha256(toCalculate)<<std::endl;
+    //std::cout<<"hashcode:"<< hashcode <<"\n toCalculate:" << toCalculate<<"[s]" << std::endl;
+    //std::cout<<"TOCALCULATE:"<<sha256(toCalculate)<<std::endl;
     if(sha256(toCalculate) == hashcode)
     {
         std::cout<<"哈希值验证成功"<<std::endl;
@@ -85,7 +85,7 @@ void EchoServer::HandleMessage(Connection *conn, std::string& message)
     else
     {
         std::cout<<"哈希值验证失败"<<std::endl;
-        conn->errorcallback();
+        conn->errorcallback();              //发生段错误
         return;
     }
     std::string cmd = data["CMD"].asString();
@@ -128,9 +128,39 @@ void EchoServer::HandleMessage(Connection *conn, std::string& message)
         std::cout<<"unknow command"<<std::endl;
         data["Validation"] = "UNKNOWCMD";
     }
-    std::string style = data.toStyledString();
+    Json::Value toSend(Json::objectValue);
+    toSend["Data"] = data;
+    toSend["HashCode"] = Json::String(sha256(writer.write(data)));
+    std::cout<<writer.write(data)<<std::endl;
+    std::string style = toSend.toStyledString();
+    std::cout<<"style:"<<style<<std::endl;
+                // std::string aesKeyStr = root["AESKEY"].asString();
+                // std::string ivStr = root["IV"].asString();
+                // std::cout << "AESKEY: " << aesKeyStr << " (length: " << aesKeyStr.size() << ")\n";
+                // std::cout << "IV: " << ivStr << " (length: " << ivStr.size() << ")\n";
+                // if (aesKeyStr.size() != 32 || ivStr.size() != 16) {
+                //     throw std::runtime_error("AES key must be 32 bytes and IV must be 16 bytes long");
+                // }
+
+                // const unsigned char* key = reinterpret_cast<const unsigned char*>(aesKeyStr.data());
+                // const unsigned char* iv = reinterpret_cast<const unsigned char*>(ivStr.data());
+
+                // std::vector<unsigned char> ciphertext = aes_encrypt(key, iv, style);
+
+                // // 打印加密后的密文
+                // for (unsigned char c : ciphertext) {
+                //     std::cout << std::hex << static_cast<int>(c);
+                // }
+                // std::cout << std::endl;
+    
+
+
+                //const char* tosend = reinterpret_cast<const char*>(ciphertext.data());
     //SSL_write(ssl, style.c_str(), strlen(style.c_str())+1);
-    send (conn->fd(), style.c_str(), strlen(style.c_str()),0);
+
+    send (conn->fd(), style.c_str(), style.size(),0);
+    //std::cout << "\n\n" << std::endl;
+
     //conn->send(style.c_str(), strlen(style.c_str()));
     //std::cout << style << std::endl;
 }

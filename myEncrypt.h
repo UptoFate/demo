@@ -9,6 +9,8 @@
 #include <sstream>
 #include <iomanip>
 #include <openssl/sha.h>
+#include <openssl/aes.h>
+#include <openssl/rand.h>
 
 // 错误处理函数
 void handleErrors() ;
@@ -26,3 +28,12 @@ std::string rsaDecrypt(EVP_PKEY* privKey, const std::vector<unsigned char>& ciph
 
 //sha256 生成hash
 std::string sha256(const std::string& input);
+
+//生成对称密钥和iv向量
+void generate_random_bytes(unsigned char* buffer, int length);
+
+// AES CBF加密
+std::vector<unsigned char> aes_encrypt(const unsigned char* key, const unsigned char* iv, const std::string& plaintext);
+
+// AES CBF解密
+std::string aes_decrypt(const unsigned char* key, const unsigned char* iv, const std::vector<unsigned char>& ciphertext);

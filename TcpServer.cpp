@@ -9,27 +9,43 @@ enum LOGIN{
     UNKNOWCMD
 };
 
-TcpServer::TcpServer(const std::string &ip, const uint16_t port):acceptor_(new Acceptor(&loop_, ip, port))
+TcpServer::TcpServer(const std::string &ip, const uint16_t port, int threadnum)
+:mainloop_(new EventLoop()),acceptor_(new Acceptor(mainloop_, ip, port)),threadnum_(threadnum)
 {
     acceptor_->setnewconnectioncb(std::bind(&TcpServer::newconnection, this, std::placeholders::_1));
-    loop_.setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout, this, std::placeholders::_1));
+    mainloop_->setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout, this, std::placeholders::_1));
+
+    threadpool_=new ThreadPool(threadnum_); //创建线程池
+
+    //创建从事件循环
+    for(int i=0; i<threadnum_; i++){
+        subloops_.push_back(new EventLoop);     //创建从事件循环放入容器
+        subloops_[i]->setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout, this, std::placeholders::_1));
+        threadpool_->addtask(std::bind(&EventLoop::run, subloops_[i]));
+    }
 }
 
 TcpServer::~TcpServer()
 {
     delete acceptor_;
+    delete mainloop_;
     for(auto i:conns_){
         delete i.second;
     }
+    for(auto i:subloops_){
+        delete i;
+    }
+    delete threadpool_;
 }
 
 void TcpServer::start()
 {
-    loop_.run();
+    mainloop_->run();
 }
 void TcpServer::newconnection(Socket* clientsock)
 {
-    Connection* conn = new Connection(&loop_, clientsock);  //还未释放
+    //Connection* conn = new Connection(mainloop_, clientsock);  //还未释放
+    Connection* conn = new Connection(subloops_[clientsock->fd()%threadnum_], clientsock);
     conn->setclosecallback(std::bind(&TcpServer::closeconnection,this,std::placeholders::_1));
     conn->seterrorcallback(std::bind(&TcpServer::errorconnection,this,std::placeholders::_1));
     conn->setonmessagercallback(std::bind(&TcpServer::onmessage, this, std::placeholders::_1, std::placeholders::_2));
