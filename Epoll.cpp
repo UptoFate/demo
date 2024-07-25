@@ -58,6 +58,18 @@ void Epoll::updateChannel(Channel *ch)
     }
 }
 
+void Epoll::removeChannel(Channel *ch)
+{
+    if(ch->inepoll())       //channel 已经在树上了 
+    {
+        if(epoll_ctl(epollfd_, EPOLL_CTL_DEL, ch->fd(), 0)==-1)
+        {
+            perror("epoll_ctl()failed.\n");
+            exit(-1);
+        }
+    }
+}
+
 void Epoll::closefd(int fd)
 {
     //服务器端关闭连接，

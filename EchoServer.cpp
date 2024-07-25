@@ -10,7 +10,8 @@ enum LOGIN{
     UNKNOWCMD
 };
 
-EchoServer::EchoServer(const std::string &ip, const uint16_t port,  int threadnum):tcpserver_(ip,port,threadnum)
+EchoServer::EchoServer(const std::string &ip, const uint16_t port,  int subthreadnum, int workthreadnum)
+    :tcpserver_(ip,port,subthreadnum),threadpool_(workthreadnum,"WORKS")
 {
     tcpserver_.setnewconnectioncb(std::bind(&EchoServer::HandleNewConnection, this, std::placeholders::_1));
     tcpserver_.setclosecohnectioncb(std::bind(&EchoServer::HandleClose, this, std::placeholders::_1));
@@ -30,22 +31,22 @@ void EchoServer::start()
     tcpserver_.start();
 }
 
-void EchoServer::HandleNewConnection(Connection *conn)
+void EchoServer::HandleNewConnection(spConnection conn)
 {
     std::cout<<"New Connection "<<std::endl;
 }
 
-void EchoServer::HandleClose(Connection *conn)
+void EchoServer::HandleClose(spConnection conn)
 {
 
 } 
 
-void EchoServer::HandleError(Connection *conn)
+void EchoServer::HandleError(spConnection conn)
 {
 
 }
 
-void EchoServer::HandleMessage(Connection *conn, std::string& message)
+void EchoServer::Login(spConnection conn, std::string& message)
 {
     EVP_PKEY* publicKey = loadPublicKey("public_key.pem");
     EVP_PKEY* privateKey = loadPrivateKey("private_key.pem");
@@ -165,7 +166,12 @@ void EchoServer::HandleMessage(Connection *conn, std::string& message)
     //std::cout << style << std::endl;
 }
 
-void EchoServer::HandleSendComplete(Connection *conn)
+void EchoServer::HandleMessage(spConnection conn, std::string& message)
+{
+    threadpool_.addtask(std::bind(&EchoServer::Login, this, conn, message));
+}
+
+void EchoServer::HandleSendComplete(spConnection conn)
 {
 
 }

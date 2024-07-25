@@ -7,10 +7,11 @@ enum LOGIN{
     SQLERROR
 };
 
-Connection:: Connection(EventLoop *loop, Socket *clientsock):loop_(loop), clientsock_(clientsock)
+Connection:: Connection(const std::unique_ptr<EventLoop> &loop, std::unique_ptr<Socket> clientsock)
+    :loop_(loop), clientsock_(std::move(clientsock)),disconnect_(false),clientchannel_(new Channel(loop_, clientsock_->fd()))
 {
     //设置该句柄为边缘触发（数据没处理完后续不会再触发事件，水平触发是不管数据有没有触发都返回事件），
-    clientchannel_ = new Channel(loop_, clientsock_->fd());
+    //clientchannel_ = new Channel(loop_, clientsock_->fd());
     clientchannel_->setreadcallback(std::bind(&Connection::onmessage, this));
     clientchannel_->setclosecallback(std::bind(&Connection::closecallback, this));
     clientchannel_->seterrorcallback(std::bind(&Connection::errorcallback, this));
@@ -23,7 +24,7 @@ Connection:: Connection(EventLoop *loop, Socket *clientsock):loop_(loop), client
 }
 Connection:: ~Connection()
 {
-    delete clientsock_;
+    //delete clientsock_;
 
     //delete clientchannel_;        //会发生段错误
 }
@@ -45,32 +46,36 @@ void Connection::closecallback()
 {
     // printf("client(eventfd=%d) disconnected.\n", fd());
     // close(fd());
-    closecallback_(this);
+    clientchannel_->remove();
+    disconnect_=true;
+    closecallback_(shared_from_this());
 }
 
 void Connection::errorcallback()
 {
     // printf("client(eventfd=%d) error.\n", fd());
     // close(fd());
-    errorcallback_(this);
+    clientchannel_->remove();
+    disconnect_=true;
+    errorcallback_(shared_from_this());
 }
 
-void Connection::setclosecallback(std::function<void(Connection*)> fn)
+void Connection::setclosecallback(std::function<void(spConnection)> fn)
 {
     closecallback_ = fn;
 }
 
-void Connection::seterrorcallback(std::function<void(Connection*)> fn)
+void Connection::seterrorcallback(std::function<void(spConnection)> fn)
 {
     errorcallback_ = fn;
 }
 
-void Connection::setonmessagercallback(std::function<void(Connection*, std::string&)> fn)
+void Connection::setonmessagercallback(std::function<void(spConnection, std::string&)> fn)
 {
     onmessagecallback_ = fn;
 }
 
-void Connection::sendcompletecallback(std::function<void(Connection*)> fn)
+void Connection::sendcompletecallback(std::function<void(spConnection)> fn)
 {
     sendcompletecallback_= fn;
 }
@@ -106,7 +111,7 @@ void Connection::onmessage()
         {   
             if(inputbuffer_.size())printf ("recv(eventfd=%d):%s\n",fd(), inputbuffer_.data());
             std::string message(inputbuffer_.data(),inputbuffer_.size());
-            if(message.size()>0)onmessagecallback_(this,message);
+            if(message.size()>0)onmessagecallback_(shared_from_this(),message);
             /*
             EVP_PKEY* publicKey = loadPublicKey("public_key.pem");
             EVP_PKEY* privateKey = loadPrivateKey("private_key.pem");
@@ -199,7 +204,7 @@ void Connection::onmessage()
            break;
         }
         else if (nread ==0)//客户端连接已断开。
-        {
+        {   
             printf (" client(eventfd=%d)disconnected.\n ", fd());
             closecallback();
             //_close(fd_ );//关闭客户端的fd
@@ -213,6 +218,7 @@ void Connection::onmessage()
 
 void Connection::send(const char*data, size_t size)
 {
+    if(disconnect_==true)return;
     outputbuffer_.append(data, size);
     //注册写事件
     std::string s(data,size);
@@ -228,6 +234,6 @@ void Connection::writecallback()
     if(outputbuffer_.size()==0)
     {
         clientchannel_->disablewriting();
-        sendcompletecallback_(this);
+        sendcompletecallback_(shared_from_this());
     }
 }

@@ -31,7 +31,7 @@ bool readline(int fd, char buf[], size_t buf_size) {
     return false;
 }
 
-Channel::Channel(EventLoop*loop, int fd):loop_(loop),fd_(fd)
+Channel::Channel(const std::unique_ptr<EventLoop> &loop, int fd):loop_(loop),fd_(fd)
 {
 
 }
@@ -79,6 +79,18 @@ void Channel::disablewriting()
 {
     events_ = events_&~EPOLLOUT;
     loop_->updateChannel(this);
+}
+
+void Channel::disableall()
+{
+    events_ = 0;
+    loop_->updateChannel(this);
+}
+
+void Channel::remove()
+{
+    disableall();
+    loop_->removeChannel(this);     //从红黑树上删除fd
 }
 
 void Channel::setinepoll()
@@ -188,7 +200,7 @@ void Channel::handleevent()
     }
     //else if 可以加管道，unix套接字等等数据
     else
-    {
+    {   
         errorcallback_();
         if(Channel::userlist[fd_] != nullptr)free(Channel::userlist[fd_]);    //这个后续再改
     }

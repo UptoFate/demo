@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <string>
 
+//地址协议类
 class InetAddress
 {
 private:

@@ -6,7 +6,7 @@ EventLoop::EventLoop():ep_(new Epoll)
 
 EventLoop::~EventLoop()
 {
-    delete ep_;
+    //delete ep_;
 }
 
 void EventLoop::run()
@@ -35,6 +35,11 @@ void EventLoop::run()
 void EventLoop::updateChannel(Channel *ch)
 {
     ep_->updateChannel(ch);
+}
+
+void EventLoop::removeChannel(Channel *ch)
+{
+    ep_->removeChannel(ch);
 }
 
 void EventLoop::closefd(int fd)
