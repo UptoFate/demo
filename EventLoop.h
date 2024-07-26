@@ -2,7 +2,19 @@
 #define __EVENT_LOOP__
 
 #include <functional>
+#include <sys/syscall.h>
+#include <unistd.h>
+#include <queue>
+#include <mutex>
+#include <sys/eventfd.h>
 #include "Epoll.h"
+
+
+
+// 如何通知事件循环?
+// 通知线程的方法:条件变量、信号量、socket、管道、eventfd。
+// 事件循环阻塞在epoll_wait()函数，条件变量、信号量有自己的等待函数，不适合用于通知事件循环。
+//socket、管道、eventfd都是fd，可加入epoll，如果要通知事件循环，往socket、管道、eventfd中写入数据即可。
 
 
 class Channel;
@@ -14,6 +26,11 @@ class EventLoop
 private:
     std::unique_ptr<Epoll> ep_;             //每个事件循环中只有一个Epoll //一个网络程序中最多只有十几个事件循环 //头文件互相包含用栈内存会报错
     std::function<void(EventLoop*)> epolltimeoutcallback_;
+    pid_t threadid_;                        //事件 循环所在线程的id
+    std::queue<std::function<void()>> taskqueue_;   //事件循环被eventfd唤醒后执行的任务队列
+    std::mutex mutex_;                              //任务队列同步的互斥锁
+    int wakeupfd_;                                  //用于唤醒事件循环线程的eventfd
+    std::unique_ptr<Channel> wakechannel_;
 public:
     EventLoop();            //创建Epoll
     ~EventLoop();           //销毁Epoll
@@ -23,6 +40,11 @@ public:
     void removeChannel(Channel *ch);           //从红黑树上删除channnel
     void closefd(int fd);
     void setepolltimeoutcallback(std::function<void(EventLoop*)> fn);
+
+    bool isinloopthread();                      //判断当前线程是否为事件循环线程
+    void queueinloop(std::function<void()> fn);  //把任务添加入队列
+    void wakeup();                              //唤醒事件循环
+    void handlewakeup();                        //事件循环被唤醒后执行的函数
 };
 
 

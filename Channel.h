@@ -24,7 +24,7 @@ class Channel
 private:
     int fd_ = -1;
     //Epoll*ep_ = nullptr;         //Channel对应的红黑树，Channel与Epoll是多对一
-    const std::unique_ptr<EventLoop> &loop_ = nullptr;
+    EventLoop *loop_ = nullptr;
     bool inepoll_ = false;       //Channel是否已添加到epoll树上，若未则调用epoll_ctl()时使用EPOLL_CTL_ADD,否则用.._MOD
     uint32_t events_ = 0;        //fd_需要监视的事件：listenfd和clientfd需要监视EPOLLIN，clientfd还可能要EPOLLOUT
     uint32_t revents_ = 0;       //fd_已发生事件
@@ -38,7 +38,7 @@ private:
 public:
     //std::vector<std::unique_ptr<User>> userlist;
     static std::vector<User*> userlist;
-    Channel(const std::unique_ptr<EventLoop> &loop, int fd);
+    Channel(EventLoop *loop, int fd);
     ~Channel();
     int fd();                               //返回fd_
     void useet();                           //采用边缘触发

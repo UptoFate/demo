@@ -168,7 +168,14 @@ void EchoServer::Login(spConnection conn, std::string& message)
 
 void EchoServer::HandleMessage(spConnection conn, std::string& message)
 {
-    threadpool_.addtask(std::bind(&EchoServer::Login, this, conn, message));
+    if(threadpool_.size()==0)
+    {
+        //如果没有工作线程，直接在IO线程中计算
+    }
+    else
+    {
+        threadpool_.addtask(std::bind(&EchoServer::Login, this, conn, message));
+    }
 }
 
 void EchoServer::HandleSendComplete(spConnection conn)

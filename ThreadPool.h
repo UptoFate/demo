@@ -31,4 +31,6 @@ public:
 
     // 在析构函数中将停止线程。
 	~ThreadPool();
+
+	size_t size();
 };

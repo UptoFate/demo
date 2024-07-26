@@ -31,7 +31,7 @@ bool readline(int fd, char buf[], size_t buf_size) {
     return false;
 }
 
-Channel::Channel(const std::unique_ptr<EventLoop> &loop, int fd):loop_(loop),fd_(fd)
+Channel::Channel(EventLoop *loop, int fd):loop_(loop),fd_(fd)
 {
 
 }

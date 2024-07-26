@@ -7,7 +7,7 @@ enum LOGIN{
     SQLERROR
 };
 
-Connection:: Connection(const std::unique_ptr<EventLoop> &loop, std::unique_ptr<Socket> clientsock)
+Connection:: Connection(EventLoop *loop, std::unique_ptr<Socket> clientsock)
     :loop_(loop), clientsock_(std::move(clientsock)),disconnect_(false),clientchannel_(new Channel(loop_, clientsock_->fd()))
 {
     //设置该句柄为边缘触发（数据没处理完后续不会再触发事件，水平触发是不管数据有没有触发都返回事件），
@@ -219,12 +219,32 @@ void Connection::onmessage()
 void Connection::send(const char*data, size_t size)
 {
     if(disconnect_==true)return;
-    outputbuffer_.append(data, size);
+
+    //因为数据发送要给其他线程处理，将它包装成智能指针；
+    std::shared_ptr<std::string> message(new std::string(data));
+    if(loop_->isinloopthread())     //判断当前线程是否为IO线程
+    {
+        //直接发送
+        sendinloop(message);
+    }
+    else
+    {
+        //将sendinloop放入任务队列，用eventfd唤醒IO线程
+        loop_->queueinloop(std::bind(&Connection::sendinloop,this,message));
+        //由于添加完后立即返回，data会被释放，得用智能指针
+    }
+
+}
+
+void Connection::sendinloop(std::shared_ptr<std::string> data)
+{
+    outputbuffer_.append(data->data(), data->size());
     //注册写事件
-    std::string s(data,size);
-    std::cout <<"send:" <<s <<"size:"<<size<<"aaaaa";
+    std::string s(data->data(), data->size());
+    std::cout <<"send:" <<s <<"size:"<<data->size()<<std::endl;
     clientchannel_->enablewriting();
 }
+
 
 void Connection::writecallback()
 {

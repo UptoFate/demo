@@ -60,6 +60,10 @@ ThreadPool::~ThreadPool()
         th.join();
 }
 
+size_t ThreadPool::size(){
+    return threads_.size();
+}
+
 // void show(int no, const std::string &name)
 // {
 //     printf("小哥哥们好，我是第%d号超级女生%s。\n",no,name.c_str());

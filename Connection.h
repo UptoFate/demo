@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <atomic>
+#include <syscall.h>
 #include "Socket.h"
 #include "InetAddress.h"
 #include "EventLoop.h"
@@ -20,7 +21,7 @@ using spConnection=std::shared_ptr<Connection>;
 class Connection:public std::enable_shared_from_this<Connection>
 {
 private:
-    const std::unique_ptr<EventLoop> &loop_;
+    EventLoop *loop_;
     std::unique_ptr<Socket> clientsock_;
     std::unique_ptr<Channel> clientchannel_;
     Buffer inputbuffer_;         //接收缓冲区
@@ -33,7 +34,7 @@ private:
     std::function<void(spConnection)> sendcompletecallback_;       //数据发送完成回调函数 
 
 public:
-    Connection(const std::unique_ptr<EventLoop> &loop, std::unique_ptr<Socket> clientsock);
+    Connection(EventLoop *loop, std::unique_ptr<Socket> clientsock);
     ~Connection();
     int fd() const;     //返回fd成员
     std::string ip() const;
@@ -49,7 +50,8 @@ public:
     void setonmessagercallback(std::function<void(spConnection, std::string&)> fn);       //设置处理报文回调函数
     void sendcompletecallback(std::function<void(spConnection)> fn);       //设置数据发送完成回调函数
 
-    void send(const char*data, size_t size);
+    void send(const char*data, size_t size);            //在任意线程中发送数据
+    void sendinloop(std::shared_ptr<std::string> data);      //在IO线程中发送数据（如果当前是工作线程将传给IO线程）
 };
 
 #endif
