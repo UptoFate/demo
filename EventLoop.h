@@ -9,6 +9,7 @@
 #include <sys/eventfd.h>
 #include <sys/timerfd.h>
 #include <map>
+#include <atomic>
 #include "Epoll.h"
 #include "Connection.h"
 
@@ -44,11 +45,14 @@ private:
     std::map<int ,spConnection> conns_;
     std::mutex mmutex_;                             //保护conns_的互斥锁
     std::function<void(int)> timercallback_;        //用于删除TcpServer中的Connection对象
+    std::atomic_bool stop_;                         //初始为false，如果为true则停止事件循环
 
 public:
     EventLoop(bool mainloop, int timetvl=30, int timeout=80);            //创建Epoll
     ~EventLoop();           //销毁Epoll
+
     void run();             //运行事件循环
+    void stop();
 
     void updateChannel(Channel *ch);          //把chnnel添加/更新到红黑树上，添加事件
     void removeChannel(Channel *ch);           //从红黑树上删除channnel

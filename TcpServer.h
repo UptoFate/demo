@@ -32,7 +32,10 @@ private:
 public:
     TcpServer(const std::string &ip, const uint16_t port, int threadnum=3);
     ~TcpServer();
+
     void start();                   //进入服务器循环
+    void stop();                    //停止IO线程与事件循环
+
     void newconnection(std::unique_ptr<Socket> clientsock);         //处理新客户端连接请求
     void closeconnection(spConnection conn);         //关闭客户端连接，在Connection中调用    
     void errorconnection(spConnection conn);         //客户端连接错误，在Connection中调用  

@@ -31,10 +31,18 @@ void EchoServer::start()
     tcpserver_.start();
 }
 
+void EchoServer::stop()
+{
+    //停止工作线程
+    threadpool_.stop();
+    //停止IO线程
+    tcpserver_.stop();
+}
+
 void EchoServer::HandleNewConnection(spConnection conn)
 {
     std::cout<<"New Connection "<<std::endl;
-    printf("(fd=%d,ip=%s,port=%d)ok\n", conn->fd(), conn->ip(), conn->port());
+    printf("(fd=%d,ip=%s,port=%d)ok\n", conn->fd(), conn->ip().c_str(), conn->port());
 }
 
 void EchoServer::HandleClose(spConnection conn)

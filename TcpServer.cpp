@@ -39,6 +39,22 @@ void TcpServer::start()
 {
     mainloop_->run();
 }
+
+void TcpServer::stop()
+{
+    //停止主事件循环
+    mainloop_->stop();
+
+    //停止从事件循环
+    for(int i=0; i<threadnum_; i++)
+    {
+        subloops_[i]->stop();
+    }
+    
+    //停止IO线程
+    threadpool_.stop();
+}
+
 void TcpServer::newconnection(std::unique_ptr<Socket> clientsock)
 {
     //Connection* conn = new Connection(mainloop_, clientsock);  //还未释放

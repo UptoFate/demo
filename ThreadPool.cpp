@@ -49,15 +49,21 @@ void ThreadPool::addtask(std::function<void()> task)
     condition_.notify_one();   // 唤醒一个线程。
 }
 
-ThreadPool::~ThreadPool()
+void ThreadPool::stop()
 {
-	stop_ = true;
+    if(stop_)return;
+    stop_ = true;
 
 	condition_.notify_all();  // 唤醒全部的线程。
 
     // 等待全部线程执行完任务后退出。
 	for (std::thread &th : threads_) 
         th.join();
+}
+
+ThreadPool::~ThreadPool()
+{
+	stop();
 }
 
 size_t ThreadPool::size(){

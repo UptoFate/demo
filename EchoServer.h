@@ -16,6 +16,7 @@ public:
     ~EchoServer();
 
     void start();
+    void stop();
 
     void HandleNewConnection(spConnection conn);         //处理新客户端连接请求
     void HandleClose(spConnection conn);         //关闭客户端连接，在Connection中调用    

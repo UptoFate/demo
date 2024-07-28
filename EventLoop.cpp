@@ -14,7 +14,7 @@ int createtimefd(int sec=30)
 
 EventLoop::EventLoop(bool mainloop, int timetvl, int timeout)
     :ep_(new Epoll),mainloop_(mainloop),wakeupfd_(eventfd(0,EFD_NONBLOCK)),wakechannel_(new Channel(this,wakeupfd_)),
-    timerfd_(createtimefd(timeout_)),timerchannel_(new Channel(this,timerfd_)),timetvl_(timetvl),timeout_(timeout)
+    timerfd_(createtimefd(timeout_)),timerchannel_(new Channel(this,timerfd_)),timetvl_(timetvl),timeout_(timeout),stop_(false)
 {
     //设置回调函数以及注册读事件
     wakechannel_->setreadcallback(std::bind(&EventLoop::handlewakeup,this));
@@ -34,7 +34,7 @@ void EventLoop::run()
     //进入服务器循环
     threadid_ = syscall(SYS_gettid);
 
-    while(1)
+    while(stop_==false)
     {
         std::vector<Channel*> channels = ep_->loop();           //存放epoll_wait()返回的事件
         
@@ -52,6 +52,12 @@ void EventLoop::run()
         }
 
     }
+}
+
+void EventLoop::stop()
+{
+    stop_ = true;
+    wakeup();           //唤醒事件循环，否则事件循环将在下次闹钟响或epollwait超时停止
 }
 
 void EventLoop::updateChannel(Channel *ch)

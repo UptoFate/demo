@@ -14,8 +14,19 @@
 // #include <json/json.h>
 // #include "Channel.h"
 // #include "EventLoop.h"
+#include <signal.h>
 #include "EchoServer.h"
 
+EchoServer *echoserver;
+
+//信号处理函数
+void Stop(int sig)
+{
+    printf("sig=%d\n",sig);
+    echoserver->stop();
+    delete echoserver;
+    exit(0);
+}
 const int MAX_EVENT_NUMBER = 10000; //最大事件数
 
 int main(int argc, char* argv[]){
@@ -25,9 +36,12 @@ int main(int argc, char* argv[]){
         return -1; 
     }
 
-    EchoServer echoserver(argv[1],atoi(argv[2]));
+    signal(SIGTERM,Stop);       //信号15 --kill / killall
+    signal(SIGINT,Stop);        //信号2 --Ctrl+c
+    
+    echoserver= new EchoServer(argv[1],atoi(argv[2]));
 
     //进入服务器循环
-    echoserver.start();
+    echoserver->start();
 }
 
