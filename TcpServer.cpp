@@ -10,15 +10,16 @@ enum LOGIN{
 };
 
 TcpServer::TcpServer(const std::string &ip, const uint16_t port, int threadnum)
-    :mainloop_(new EventLoop()),acceptor_(mainloop_.get(), ip, port),threadnum_(threadnum),threadpool_(threadnum_,"IO")
+    :mainloop_(new EventLoop(true)),acceptor_(mainloop_.get(), ip, port),threadnum_(threadnum),threadpool_(threadnum_,"IO")
 {
     acceptor_.setnewconnectioncb(std::bind(&TcpServer::newconnection, this, std::placeholders::_1));
     mainloop_->setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout, this, std::placeholders::_1));
 
     //创建从事件循环
     for(int i=0; i<threadnum_; i++){
-        subloops_.emplace_back(new EventLoop);     //创建从事件循环放入容器
+        subloops_.emplace_back(new EventLoop(false,5,10));     //创建从事件循环放入容器
         subloops_[i]->setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout, this, std::placeholders::_1));
+        subloops_[i]->settimercallback(std::bind(&TcpServer::removeconn, this, std::placeholders::_1));        
         threadpool_.addtask(std::bind(&EventLoop::run, subloops_[i].get()));     //bind函数记得用普通指针
     }
 }
@@ -47,8 +48,12 @@ void TcpServer::newconnection(std::unique_ptr<Socket> clientsock)
     conn->setonmessagercallback(std::bind(&TcpServer::onmessage, this, std::placeholders::_1, std::placeholders::_2));
     conn->sendcompletecallback(std::bind(&TcpServer::sendcomplete,this,std::placeholders::_1));
 
-    conns_ [conn->fd()] = conn;
+    {
+        std::lock_guard<std::mutex> gd(mutex_);
+        conns_ [conn->fd()] = conn;     //把conn存放到TcpServer map中
+    }
 
+    subloops_[conn->fd()%threadnum_]->newconnection(conn);//把conn存放到EventLoop map中
     if(newconnectioncb_)newconnectioncb_(conn);
 }
 
@@ -56,7 +61,11 @@ void TcpServer::closeconnection(spConnection conn)
 {
     if(closecohnectioncb_)closecohnectioncb_(conn);
 
-    conns_.erase(conn->fd());   //conn里会关fd
+    {
+        std::lock_guard<std::mutex> gd(mutex_);
+        conns_.erase(conn->fd());   //conn里会关fd
+    }
+
 
 }
 
@@ -64,7 +73,11 @@ void TcpServer::errorconnection(spConnection conn)
 {
     if(errorconnectioncb_)errorconnectioncb_(conn);
 
-    conns_.erase(conn->fd());   //conn里会关fd
+    {
+        std::lock_guard<std::mutex> gd(mutex_);
+        conns_.erase(conn->fd());   //conn里会关fd
+    }
+
 
 }
 
@@ -112,3 +125,11 @@ void TcpServer::settimeoutcb(std::function<void(EventLoop*)> fn)
 {
     timeoutcb_ = fn;
 }   
+
+void TcpServer::removeconn(int fd)
+{
+    {
+        std::lock_guard<std::mutex> gd(mutex_);
+        conns_.erase(fd);   //conn里会关fd
+    }
+}

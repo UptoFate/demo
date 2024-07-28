@@ -4,12 +4,14 @@
 #include <functional>
 #include <atomic>
 #include <syscall.h>
+#include <sys/syscall.h>
+#include <memory>
 #include "Socket.h"
 #include "InetAddress.h"
 #include "EventLoop.h"
 #include "Channel.h"
 #include "Buffer.h"
-#include "memory"
+#include "Timestamp.h"
 
 class Channel;
 class EventLoop;
@@ -32,6 +34,7 @@ private:
     std::function<void(spConnection)> errorcallback_;        //连接错误回调，将回调Tcpserver中的errorconnection
     std::function<void(spConnection, std::string&)> onmessagecallback_;       //处理报文回调函数 
     std::function<void(spConnection)> sendcompletecallback_;       //数据发送完成回调函数 
+    Timestamp lastatime_;           //时间戳，每收到一个报文把时间戳更新为当前时间
 
 public:
     Connection(EventLoop *loop, std::unique_ptr<Socket> clientsock);
@@ -52,6 +55,8 @@ public:
 
     void send(const char*data, size_t size);            //在任意线程中发送数据
     void sendinloop(std::shared_ptr<std::string> data);      //在IO线程中发送数据（如果当前是工作线程将传给IO线程）
+
+    bool timeout(time_t now, int val);           //判断TCP连接是否超时
 };
 
 #endif

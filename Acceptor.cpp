@@ -52,7 +52,7 @@ void Acceptor::newconnection()
     
 
     Channel::userlist[clientsock->fd()] = new User(clientaddr.ip());
-    printf("accept client(fd=%d,ip=%s,port=%d)ok\n", clientsock->fd(), clientaddr.ip(), clientaddr.port());
+    //printf("accept client(fd=%d,ip=%s,port=%d)ok\n", clientsock->fd(), clientaddr.ip(), clientaddr.port());
     
     newconnectioncb_(std::move(clientsock));
 }  

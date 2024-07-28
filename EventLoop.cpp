@@ -1,9 +1,27 @@
 #include "EventLoop.h"
-EventLoop::EventLoop()
-    :ep_(new Epoll),wakeupfd_(eventfd(0,EFD_NONBLOCK)),wakechannel_(new Channel(this,wakeupfd_))
+
+int createtimefd(int sec=30)
 {
+    // 把定时器加入epoll。
+    int tfd=timerfd_create(CLOCK_MONOTONIC,TFD_CLOEXEC|TFD_NONBLOCK);   // 创建timerfd。
+    struct itimerspec timeout;                                // 定时时间的数据结构。
+    memset(&timeout,0,sizeof(struct itimerspec));
+    timeout.it_value.tv_sec = sec;                             // 定时时间为sec。
+    timeout.it_value.tv_nsec = 0;
+    timerfd_settime(tfd,0,&timeout,0);                  // 开始计时。alarm(5)
+    return tfd;
+}
+
+EventLoop::EventLoop(bool mainloop, int timetvl, int timeout)
+    :ep_(new Epoll),mainloop_(mainloop),wakeupfd_(eventfd(0,EFD_NONBLOCK)),wakechannel_(new Channel(this,wakeupfd_)),
+    timerfd_(createtimefd(timeout_)),timerchannel_(new Channel(this,timerfd_)),timetvl_(timetvl),timeout_(timeout)
+{
+    //设置回调函数以及注册读事件
     wakechannel_->setreadcallback(std::bind(&EventLoop::handlewakeup,this));
     wakechannel_->enablereading();
+
+    timerchannel_->setreadcallback(std::bind(&EventLoop::handletimer,this));
+    timerchannel_->enablereading();
 }
 
 EventLoop::~EventLoop()
@@ -93,4 +111,48 @@ void EventLoop::handlewakeup()
         fn();                                   //执行
     }
     
+}
+
+void EventLoop::handletimer()
+{
+    //重新计时
+    struct itimerspec timeout;                                // 定时时间的数据结构。
+    memset(&timeout,0,sizeof(struct itimerspec));
+    timeout.it_value.tv_sec = timetvl_;                      // 定时时间为timetvl_。
+    timeout.it_value.tv_nsec = 0;
+    timerfd_settime(timerfd_,0,&timeout,0);                  // 开始计时。alarm(5)
+
+    if(mainloop_)
+    {
+        printf("主事件循环.\n");
+    }
+    else
+    {
+        //printf("从事件循环.\n");
+        printf("thread:%ld. fd:",syscall(SYS_gettid));
+        time_t now = time(0);
+
+        for(auto it=conns_.begin();it!=conns_.end();)
+        {
+            printf("%d ",it->first);
+            if(it->second->timeout(now,timeout_))
+            {
+                timercallback_(it->first);        //调用回调函数，从TcpServer删除超时conn
+                std::lock_guard<std::mutex> gd(mmutex_);
+                it = conns_.erase(it);
+            }else it++;
+        }
+        printf("\n");
+    }
+}
+
+void EventLoop::newconnection(spConnection conn)
+{
+    std::lock_guard<std::mutex> gd(mmutex_);
+    conns_[conn->fd()] = conn;
+}
+
+void EventLoop::settimercallback(std::function<void(int)> fn)
+{
+    timercallback_ = fn;
 }

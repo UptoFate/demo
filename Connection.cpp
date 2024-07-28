@@ -109,103 +109,21 @@ void Connection::onmessage()
         //全部的数据已读取完毕。 
         else if (nread ==-1 &&(( errno == EAGAIN )||( errno == EWOULDBLOCK )))
         {   
-            if(inputbuffer_.size())printf ("recv(eventfd=%d):%s\n",fd(), inputbuffer_.data());
+            //if(inputbuffer_.size())printf ("recv(eventfd=%d):%s\n",fd(), inputbuffer_.data());
             std::string message(inputbuffer_.data(),inputbuffer_.size());
+
             if(message.size()>0)onmessagecallback_(shared_from_this(),message);
-            /*
-            EVP_PKEY* publicKey = loadPublicKey("public_key.pem");
-            EVP_PKEY* privateKey = loadPrivateKey("private_key.pem");
-            std::vector<unsigned char> str(inputbuffer_.data(), inputbuffer_.data() + inputbuffer_.size()); 
-            //std::cout<<rsaDecrypt(privateKey,str)<<std::endl;
-            Json::Reader reader;
-            Json::FastWriter writer;
-            Json::Value root;
-            Json::Value data;
-            std::string hashcode;
-            //bool parsingSuccess = reader.parse(buf, root);
-            // for(char i:str){
-            //     printf("%02x", i);
-            // }
-            //std::cout<<std::endl;
-            std::string decrypted = rsaDecrypt(privateKey,str);
-            EVP_PKEY_free(publicKey);
-            EVP_PKEY_free(privateKey);
-            //std::cout<<decrypted<<std::endl;
-            bool parsingSuccess = reader.parse(decrypted, root);
-            if (!parsingSuccess) {
-                std::cerr << "Failed to parse JSON string" << std::endl;
-                errorcallback();
-                if(Channel::userlist[fd()] != nullptr)free(Channel::userlist[fd()]);    //这个后续再改
-            }
-            std::cout<<root.toStyledString()<<std::endl;
-            data = root["Data"];
-            hashcode = root["HashCode"].asString();
-            std::string toCalculate = writer.write(data);
-            // std::cout<<"hashcode:"<< hashcode <<"\n toCalculate:" << toCalculate<<"[s]" << std::endl;
-            // std::cout<<"TOCALCULATE:"<<sha256(toCalculate)<<std::endl;
-            if(sha256(toCalculate) == hashcode)
-            {
-                std::cout<<"哈希值验证成功"<<std::endl;
-            }
-            else
-            {
-                std::cout<<"哈希值验证失败"<<std::endl;
-                break;
-            }
-            std::string cmd = data["CMD"].asString();
-            if (cmd == "LOGIN")
-            {
-                Channel::userlist[fd()]->getinfo(data["username"].asString(), data["password"].asString(), data["CpuID"].asString(), data["BiosID"].asString());
-                //std::cout<<"username:"<<data["username"].toStyledString()<<" \npassword:"<<data["password"].toStyledString()<<std::endl;
-                int validation =  Channel::userlist[fd()]->login() ;
-                if(validation == SUCCESS)
-                {                    
-                    std::cout <<"登入成功"<<std::endl;
-                    data["Validation"] = "SUCCESS";
-
-                    if(Channel::userlist[fd()]->updete()){
-                        std::cout <<"修改数据成功"<<std::endl;
-                    }
-                    else{
-                        std::cout <<"修改数据失败"<<std::endl;
-                        data["Validation"] = "MODFAIL";
-                    }
-                }
-                else if(validation == PASERROR)
-                {
-                    std::cout<<"密码错误"<<std::endl;
-                    data["Validation"] = "PASERROR";
-                } 
-                else if(validation == NULLUSER)
-                {
-                    std::cout<<"用户不存在"<<std::endl;
-                    data["Validation"] = "NULLUSER";
-                }
-                else if(validation == SQLERROR)
-                {
-                    std::cout<<"SQLERROR"<<std::endl;
-                    data["Validation"] = "SQLERROR";
-                }
-            }
-            else
-            {
-                std::cout<<"unknow command"<<std::endl;
-            }
-            std::string style = data.toStyledString();
-            //SSL_write(ssl, style.c_str(), strlen(style.c_str())+1);
-            send (fd(), style.c_str(), strlen(style.c_str()),0);
-            //std::cout << style << std::endl;
-            */
-
             //outputbuffer_ = inputbuffer_;
             inputbuffer_.clear();
-            //send (outputbuffer_.data(), outputbuffer_.size());      //暂时不要这么做
             
-           break;
+            lastatime_ = Timestamp::now();      //更新时间戳
+
+            //onmessagecallback_(shared_from_this(),message);
+            break;
         }
         else if (nread ==0)//客户端连接已断开。
         {   
-            printf (" client(eventfd=%d)disconnected.\n ", fd());
+            //printf (" client(eventfd=%d)disconnected.\n ", fd());
             closecallback();
             //_close(fd_ );//关闭客户端的fd
             //if(Channel::userlist[fd()] != nullptr)free(Channel::userlist[fd()]);    //这个后续再改
@@ -256,4 +174,9 @@ void Connection::writecallback()
         clientchannel_->disablewriting();
         sendcompletecallback_(shared_from_this());
     }
+}
+
+bool Connection::timeout(time_t now,int val)
+{
+    return now-lastatime_.toint()>val;
 }

@@ -34,16 +34,17 @@ void EchoServer::start()
 void EchoServer::HandleNewConnection(spConnection conn)
 {
     std::cout<<"New Connection "<<std::endl;
+    printf("(fd=%d,ip=%s,port=%d)ok\n", conn->fd(), conn->ip(), conn->port());
 }
 
 void EchoServer::HandleClose(spConnection conn)
 {
-
+    printf (" client(eventfd=%d)disconnected.\n ", conn->fd());
 } 
 
 void EchoServer::HandleError(spConnection conn)
 {
-
+    
 }
 
 void EchoServer::Login(spConnection conn, std::string& message)
@@ -73,7 +74,7 @@ void EchoServer::Login(spConnection conn, std::string& message)
         return;
         //if(Channel::userlist[conn->fd()] != nullptr)free(Channel::userlist[conn->fd()]);    //这个后续再改
     }
-    std::cout<<root.toStyledString()<<std::endl;
+    //std::cout<<root.toStyledString()<<std::endl;
     data = root["Data"];
     hashcode = root["HashCode"].asString();
     std::string toCalculate = writer.write(data);
@@ -132,7 +133,7 @@ void EchoServer::Login(spConnection conn, std::string& message)
     Json::Value toSend(Json::objectValue);
     toSend["Data"] = data;
     toSend["HashCode"] = Json::String(sha256(writer.write(data)));
-    std::cout<<writer.write(data)<<std::endl;
+    //std::cout<<writer.write(data)<<std::endl;
     std::string style = toSend.toStyledString();
     std::cout<<"style:"<<style<<std::endl;
                 // std::string aesKeyStr = root["AESKEY"].asString();
