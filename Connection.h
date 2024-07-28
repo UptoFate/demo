@@ -54,7 +54,7 @@ public:
     void sendcompletecallback(std::function<void(spConnection)> fn);       //设置数据发送完成回调函数
 
     void send(const char*data, size_t size);            //在任意线程中发送数据
-    void sendinloop(std::shared_ptr<std::string> data);      //在IO线程中发送数据（如果当前是工作线程将传给IO线程）
+    void sendinloop(std::shared_ptr<std::string> data,  size_t size);      //在IO线程中发送数据（如果当前是工作线程将传给IO线程）
 
     bool timeout(time_t now, int val);           //判断TCP连接是否超时
 };

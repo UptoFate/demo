@@ -82,6 +82,7 @@ void Connection::sendcompletecallback(std::function<void(spConnection)> fn)
 
 void Connection::onmessage()
 {
+    //把内核中的数据先拷贝到临时变量中再拷贝到缓冲区inputbuffer_中
     char buf[1024]={0};// 使用非阻塞I/O，每次读取buffer大小数据直到读完
     //SSL *ssl = init_ssl("./myssl/cert.pem", "./myssl/key.pem", SSL_MODE_SERVER, fd_);   
     while (true){
@@ -93,7 +94,7 @@ void Connection::onmessage()
         //*2.也可先读取指定大小头部获取报文大小
         //*3.像http协议一样报文间使用/r/n/r/n分隔符
         //**********************************************/
-        ssize_t nread = read (fd() , buf , sizeof (buf));   
+        ssize_t nread = read(fd() , buf , sizeof (buf));   
 
         //成功读取到了数据。
         if (nread>0){
@@ -110,13 +111,19 @@ void Connection::onmessage()
         else if (nread ==-1 &&(( errno == EAGAIN )||( errno == EWOULDBLOCK )))
         {   
             //if(inputbuffer_.size())printf ("recv(eventfd=%d):%s\n",fd(), inputbuffer_.data());
-            std::string message(inputbuffer_.data(),inputbuffer_.size());
+            //std::string message(inputbuffer_.data(),inputbuffer_.size());
+            std::string message;
+            while (inputbuffer_.pickmessage(message))
+            {
+                lastatime_=Timestamp::now();         //更新时间戳
+                onmessagecallback_(shared_from_this(),message);
+            }
 
-            if(message.size()>0)onmessagecallback_(shared_from_this(),message);
+            //if(message.size()>0)onmessagecallback_(shared_from_this(),message);
             //outputbuffer_ = inputbuffer_;
-            inputbuffer_.clear();
+            //inputbuffer_.clear();
             
-            lastatime_ = Timestamp::now();      //更新时间戳
+            //lastatime_ = Timestamp::now();      //更新时间戳
 
             //onmessagecallback_(shared_from_this(),message);
             break;
@@ -143,23 +150,24 @@ void Connection::send(const char*data, size_t size)
     if(loop_->isinloopthread())     //判断当前线程是否为IO线程
     {
         //直接发送
-        sendinloop(message);
+        sendinloop(message,size);
     }
     else
     {
         //将sendinloop放入任务队列，用eventfd唤醒IO线程
-        loop_->queueinloop(std::bind(&Connection::sendinloop,this,message));
+        loop_->queueinloop(std::bind(&Connection::sendinloop,this,message,size));
         //由于添加完后立即返回，data会被释放，得用智能指针
     }
 
 }
 
-void Connection::sendinloop(std::shared_ptr<std::string> data)
+void Connection::sendinloop(std::shared_ptr<std::string> data, size_t size)
 {
-    outputbuffer_.append(data->data(), data->size());
+    //outputbuffer_.append(data->data(), data->size());
+    outputbuffer_.appendwithsep(data->data(),size);
     //注册写事件
-    std::string s(data->data(), data->size());
-    std::cout <<"send:" <<s <<"size:"<<data->size()<<std::endl;
+    //std::string s(data->data(), data->size());
+    //std::cout <<"send:" <<s <<"size:"<<data->size()<<std::endl;
     clientchannel_->enablewriting();
 }
 
