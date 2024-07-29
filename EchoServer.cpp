@@ -19,6 +19,7 @@ EchoServer::EchoServer(const std::string &ip, const uint16_t port,  int subthrea
     tcpserver_.setonmessagecb(std::bind(&EchoServer::HandleMessage, this, std::placeholders::_1, std::placeholders::_2));
     tcpserver_.setsendcompletecb(std::bind(&EchoServer::HandleSendComplete, this, std::placeholders::_1));
     tcpserver_.settimeoutcb(std::bind(&EchoServer::HandleTimeOut, this, std::placeholders::_1));
+    tcpserver_.setremoveconnectioncb(std::bind(&EchoServer::HandleRemove,this,std::placeholders::_1));
 }
 
 EchoServer::~EchoServer()
@@ -43,11 +44,16 @@ void EchoServer::HandleNewConnection(spConnection conn)
 {
     std::cout<<"New Connection "<<std::endl;
     printf("(fd=%d,ip=%s,port=%d)ok\n", conn->fd(), conn->ip().c_str(), conn->port());
+    spUser user(new User(conn->ip()));
+    {
+        std::lock_guard<std::mutex> gd(mutex_);
+        usermap_[conn->fd()] = user;
+    }
 }
 
 void EchoServer::HandleClose(spConnection conn)
 {
-    printf (" client(eventfd=%d)disconnected.\n ", conn->fd());
+    printf ("client(eventfd=%d)disconnected.\n ", conn->fd());
 } 
 
 void EchoServer::HandleError(spConnection conn)
@@ -80,7 +86,6 @@ void EchoServer::Login(spConnection conn, std::string& message)
         std::cerr << "Failed to parse JSON string" << std::endl;
         conn->errorcallback();
         return;
-        //if(Channel::userlist[conn->fd()] != nullptr)free(Channel::userlist[conn->fd()]);    //这个后续再改
     }
     //std::cout<<root.toStyledString()<<std::endl;
     data = root["Data"];
@@ -101,15 +106,15 @@ void EchoServer::Login(spConnection conn, std::string& message)
     std::string cmd = data["CMD"].asString();
     if (cmd == "LOGIN")
     {
-        Channel::userlist[conn->fd()]->getinfo(data["username"].asString(), data["password"].asString(), data["CpuID"].asString(), data["BiosID"].asString());
+        usermap_[conn->fd()]->getinfo(data["username"].asString(), data["password"].asString(), data["CpuID"].asString(), data["BiosID"].asString());
         //std::cout<<"username:"<<data["username"].toStyledString()<<" \npassword:"<<data["password"].toStyledString()<<std::endl;
-        int validation =  Channel::userlist[conn->fd()]->login() ;
+        int validation =  usermap_[conn->fd()]->login() ;
         if(validation == SUCCESS)
         {                    
             std::cout <<"登入成功"<<std::endl;
             data["Validation"] = "SUCCESS";
 
-            if(Channel::userlist[conn->fd()]->updete()){
+            if(usermap_[conn->fd()]->updete()){
                 std::cout <<"修改数据成功"<<std::endl;
             }
             else{
@@ -195,4 +200,10 @@ void EchoServer::HandleSendComplete(spConnection conn)
 void EchoServer::HandleTimeOut(EventLoop*loop)
 {
 
+}
+
+void EchoServer::HandleRemove(int fd)
+{
+    std::lock_guard<std::mutex> gd(mutex_);
+    usermap_.erase(fd);
 }

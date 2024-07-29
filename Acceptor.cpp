@@ -45,13 +45,6 @@ void Acceptor::newconnection()
     //Connection* conn = new Connection(loop_, clientsock);
     clientsock->setipport(clientaddr.ip(), clientaddr.port());
 
-    //userlist[fd_] = std::make_unique<User>(clientaddr.ip());
-    if (clientsock->fd() >= Channel::userlist.size()) {
-        Channel::userlist.resize(clientsock->fd() + 1);
-    }
-    
-
-    Channel::userlist[clientsock->fd()] = new User(clientaddr.ip());
     //printf("accept client(fd=%d,ip=%s,port=%d)ok\n", clientsock->fd(), clientaddr.ip(), clientaddr.port());
     
     newconnectioncb_(std::move(clientsock));

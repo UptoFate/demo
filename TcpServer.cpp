@@ -142,6 +142,11 @@ void TcpServer::settimeoutcb(std::function<void(EventLoop*)> fn)
     timeoutcb_ = fn;
 }   
 
+void TcpServer::setremoveconnectioncb(std::function<void(int)> fn)
+{
+    removeconnectioncb_ = fn;
+}
+
 void TcpServer::removeconn(int fd)
 {
     {

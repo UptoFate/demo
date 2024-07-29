@@ -4,6 +4,8 @@
 #include "TcpServer.h"
 #include "EventLoop.h"
 #include "Connection.h"
+using spUser =  std::shared_ptr<User>;
+
 
 //业务类
 class EchoServer
@@ -11,6 +13,9 @@ class EchoServer
 private:
     TcpServer tcpserver_;
     ThreadPool threadpool_;
+    
+    std::mutex mutex_;
+    std::map<int,spUser> usermap_;
 public:
     EchoServer(const std::string &ip, const uint16_t port,  int subthreadnum=3, int workthreadnum=5);
     ~EchoServer();
@@ -26,6 +31,7 @@ public:
     void HandleTimeOut(EventLoop*loop);          //epoll_wait()超时
 
     void Login(spConnection conn, std::string& message);  //业务处理
+    void HandleRemove(int fd);                              //处理连接超时
 };
 
 

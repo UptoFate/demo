@@ -1,7 +1,5 @@
 #include "Channel.h"
 
-std::vector<User*> Channel::userlist;
-
 bool readline(int fd, char buf[], size_t buf_size) {
     char ch;
     ssize_t bytes_read;
@@ -44,7 +42,6 @@ Channel::~Channel()
 void Channel::_close(int fd)
 {
     loop_->closefd(fd_);
-    //if(Channel::userlist[fd] != nullptr)free(Channel::userlist[fd]);  //这个后续再改
 }
 
 int Channel::fd()
@@ -186,7 +183,6 @@ void Channel::handleevent()
     if (revents_ & (EPOLLRDHUP | EPOLLHUP | EPOLLERR))
     {
         closecallback_();
-        //if(Channel::userlist[fd_] != nullptr)free(Channel::userlist[fd_]);    //这个后续再改
     }
     //缓冲区有数据可读 
     else if (revents_ & EPOLLIN|EPOLLPRI)
@@ -202,7 +198,6 @@ void Channel::handleevent()
     else
     {   
         errorcallback_();
-        //if(Channel::userlist[fd_] != nullptr)free(Channel::userlist[fd_]);    //这个后续再改
     }
 } 
 

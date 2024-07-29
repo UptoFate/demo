@@ -133,7 +133,6 @@ void Connection::onmessage()
             //printf (" client(eventfd=%d)disconnected.\n ", fd());
             closecallback();
             //_close(fd_ );//关闭客户端的fd
-            //if(Channel::userlist[fd()] != nullptr)free(Channel::userlist[fd()]);    //这个后续再改
             break ;
         }
     }

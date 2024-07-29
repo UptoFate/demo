@@ -27,7 +27,7 @@ private:
     std::function<void(spConnection,std::string &message)> onmessagecb_; //回调EchoServer::HandleMessage(0)
     std::function<void(spConnection)> sendcompletecb_ ;                  //回调EchoServer::HandleSendComplete0.
     std::function<void(EventLoop*)>timeoutcb_;                          //回调EchoServer::HandleTimeOut
-    
+    std::function<void(int)>removeconnectioncb_;                        //回调上层业务类HandleRemove
 
 public:
     TcpServer(const std::string &ip, const uint16_t port, int threadnum=3);
@@ -49,6 +49,7 @@ public:
     void setonmessagecb(std::function<void(spConnection,std::string &message)> fn); //回调EchoServer::HandleMessage(0)
     void setsendcompletecb(std::function<void(spConnection)> fn) ;                  //回调EchoServer::HandleSendComplete0.
     void settimeoutcb(std::function<void(EventLoop*)> fn);                          //回调EchoServer::HandleTimeOut
+    void setremoveconnectioncb(std::function<void(int)> fn);   
 
     void removeconn(int fd);        //删除conns_中的Connection 在EventLoop中回调
 };

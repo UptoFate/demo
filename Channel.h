@@ -36,8 +36,6 @@ private:
 
     void _close(int fd);
 public:
-    //std::vector<std::unique_ptr<User>> userlist;
-    static std::vector<User*> userlist;
     Channel(EventLoop *loop, int fd);
     ~Channel();
     int fd();                               //返回fd_
